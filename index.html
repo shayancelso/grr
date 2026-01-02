@@ -1254,75 +1254,83 @@
                 </div>
 
                 <div id="calendar-content" class="hidden">
-                    <!-- Calendar Header with Filters -->
-                    <div class="glass-card p-6 mb-6 stagger-item">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <!-- Time Period Filters -->
-                            <div>
-                                <p class="text-sm font-medium text-gray-600 mb-3">Time Period</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <button onclick="setCalendarPeriod('week')" id="period-week" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
-                                        This Week
-                                    </button>
-                                    <button onclick="setCalendarPeriod('month')" id="period-month" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
-                                        This Month
-                                    </button>
-                                    <button onclick="setCalendarPeriod('quarter')" id="period-quarter" class="calendar-period-btn glass-btn active px-4 py-2 rounded-full text-sm font-medium transition">
-                                        This Quarter
-                                    </button>
-                                    <button onclick="setCalendarPeriod('year')" id="period-year" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
-                                        This Year
-                                    </button>
+                    <!-- Compact Filter Bar -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3 mb-4">
+                        <div class="flex flex-wrap items-center gap-4 lg:gap-6">
+                            <!-- Time Period -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-gray-500">Period:</span>
+                                <div class="flex gap-1">
+                                    <button onclick="setCalendarPeriod('week')" id="period-week" class="calendar-period-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-gray-300 transition">Week</button>
+                                    <button onclick="setCalendarPeriod('month')" id="period-month" class="calendar-period-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-gray-300 transition">Month</button>
+                                    <button onclick="setCalendarPeriod('quarter')" id="period-quarter" class="calendar-period-btn px-3 py-1 rounded text-xs font-medium border border-vena-tuscany bg-vena-tuscany text-white transition">Quarter</button>
+                                    <button onclick="setCalendarPeriod('year')" id="period-year" class="calendar-period-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-gray-300 transition">Year</button>
                                 </div>
                             </div>
 
-                            <!-- Status Filters -->
-                            <div>
-                                <p class="text-sm font-medium text-gray-600 mb-3">Status</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <button onclick="setCalendarStatus('all')" id="status-all" class="calendar-status-btn glass-btn glass-btn-green active px-4 py-2 rounded-full text-sm font-medium transition">
-                                        All
-                                    </button>
-                                    <button onclick="setCalendarStatus('Closed Won')" id="status-won" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-green-50 hover:text-green-600 transition">
-                                        Closed Won
-                                    </button>
-                                    <button onclick="setCalendarStatus('In Progress')" id="status-progress" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-50 hover:text-blue-600 transition">
-                                        In Progress
-                                    </button>
-                                    <button onclick="setCalendarStatus('Closed Lost')" id="status-lost" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-red-50 hover:text-red-600 transition">
-                                        Closed Lost
-                                    </button>
+                            <div class="h-4 w-px bg-gray-200"></div>
+
+                            <!-- Timeline View Toggle -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-gray-500">View:</span>
+                                <div class="flex gap-1">
+                                    <button onclick="setTimelineView('weekly')" id="view-weekly" class="timeline-view-btn px-3 py-1 rounded text-xs font-medium border border-vena-green bg-vena-green text-white transition">Weekly</button>
+                                    <button onclick="setTimelineView('monthly')" id="view-monthly" class="timeline-view-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-gray-300 transition">Monthly</button>
+                                </div>
+                            </div>
+
+                            <div class="h-4 w-px bg-gray-200"></div>
+
+                            <!-- Status Filter -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-gray-500">Status:</span>
+                                <div class="flex gap-1">
+                                    <button onclick="setCalendarStatus('all')" id="status-all" class="calendar-status-btn px-3 py-1 rounded text-xs font-medium border border-vena-green bg-vena-green text-white transition">All</button>
+                                    <button onclick="setCalendarStatus('Closed Won')" id="status-won" class="calendar-status-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-green-400 hover:text-green-600 transition">Won</button>
+                                    <button onclick="setCalendarStatus('In Progress')" id="status-progress" class="calendar-status-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-blue-400 hover:text-blue-600 transition">In Progress</button>
+                                    <button onclick="setCalendarStatus('Closed Lost')" id="status-lost" class="calendar-status-btn px-3 py-1 rounded text-xs font-medium border border-gray-200 hover:border-red-400 hover:text-red-600 transition">Lost</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Summary Stats -->
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <div class="glass-card p-5 stagger-item border-l-4 border-gray-400">
-                            <p class="text-sm text-gray-600 font-medium">Total ARR to Renew</p>
-                            <p id="cal-total-arr" class="text-2xl font-bold text-gray-800 mt-2">--</p>
-                            <p id="cal-total-count" class="text-sm text-gray-500 mt-1">-- renewals</p>
+                    <!-- Summary Stats - Compact -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 border-l-4 border-l-gray-400">
+                            <p class="text-xs text-gray-500 font-medium">Total ARR</p>
+                            <p id="cal-total-arr" class="text-lg font-bold text-gray-800 mt-1">--</p>
+                            <p id="cal-total-count" class="text-xs text-gray-400">-- renewals</p>
                         </div>
-                        <div class="glass-card glass-card-won p-5 stagger-item">
-                            <p class="text-sm text-gray-600 font-medium">Closed Won</p>
-                            <p id="cal-won-arr" class="text-2xl font-bold text-green-600 mt-2">--</p>
-                            <p id="cal-won-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 border-l-4 border-l-green-500">
+                            <p class="text-xs text-gray-500 font-medium">Closed Won</p>
+                            <p id="cal-won-arr" class="text-lg font-bold text-green-600 mt-1">--</p>
+                            <p id="cal-won-count" class="text-xs text-gray-400">-- accounts</p>
                         </div>
-                        <div class="glass-card glass-card-progress p-5 stagger-item">
-                            <p class="text-sm text-gray-600 font-medium">In Progress</p>
-                            <p id="cal-progress-arr" class="text-2xl font-bold text-blue-600 mt-2">--</p>
-                            <p id="cal-progress-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 border-l-4 border-l-blue-500">
+                            <p class="text-xs text-gray-500 font-medium">In Progress</p>
+                            <p id="cal-progress-arr" class="text-lg font-bold text-blue-600 mt-1">--</p>
+                            <p id="cal-progress-count" class="text-xs text-gray-400">-- accounts</p>
                         </div>
-                        <div class="glass-card glass-card-lost p-5 stagger-item">
-                            <p class="text-sm text-gray-600 font-medium">Closed Lost</p>
-                            <p id="cal-lost-arr" class="text-2xl font-bold text-red-600 mt-2">--</p>
-                            <p id="cal-lost-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 border-l-4 border-l-red-500">
+                            <p class="text-xs text-gray-500 font-medium">Closed Lost</p>
+                            <p id="cal-lost-arr" class="text-lg font-bold text-red-600 mt-1">--</p>
+                            <p id="cal-lost-count" class="text-xs text-gray-400">-- accounts</p>
                         </div>
                     </div>
 
-                    <!-- Timeline View -->
-                    <div class="glass-card overflow-hidden">
+                    <!-- Timeline View with Navigation -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50">
+                            <span class="text-xs font-medium text-gray-500">Scroll to navigate timeline</span>
+                            <div class="flex gap-1">
+                                <button onclick="scrollTimeline(-300)" class="p-1.5 rounded hover:bg-gray-200 transition" title="Scroll Left">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                                </button>
+                                <button onclick="scrollTimeline(300)" class="p-1.5 rounded hover:bg-gray-200 transition" title="Scroll Right">
+                                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                            </div>
+                        </div>
                         <div id="calendar-timeline" class="timeline-container">
                             <!-- Populated by JS -->
                         </div>
@@ -2703,16 +2711,20 @@
         let calendarPeriod = 'quarter';
         let calendarStatus = 'all';
 
+        let timelineView = 'weekly'; // 'weekly' or 'monthly'
+
         function setCalendarPeriod(period) {
             calendarPeriod = period;
 
-            // Update button styles - use glass-btn active class
+            // Update button styles
             document.querySelectorAll('.calendar-period-btn').forEach(btn => {
-                btn.classList.remove('active');
+                btn.classList.remove('border-vena-tuscany', 'bg-vena-tuscany', 'text-white');
+                btn.classList.add('border-gray-200');
             });
             const activeBtn = document.getElementById(`period-${period}`);
             if (activeBtn) {
-                activeBtn.classList.add('active');
+                activeBtn.classList.remove('border-gray-200');
+                activeBtn.classList.add('border-vena-tuscany', 'bg-vena-tuscany', 'text-white');
             }
 
             renderCalendar();
@@ -2721,9 +2733,10 @@
         function setCalendarStatus(status) {
             calendarStatus = status;
 
-            // Update button styles - use glass-btn active class
+            // Update button styles
             document.querySelectorAll('.calendar-status-btn').forEach(btn => {
-                btn.classList.remove('active', 'glass-btn-green');
+                btn.classList.remove('border-vena-green', 'bg-vena-green', 'text-white', 'border-green-500', 'bg-green-500', 'border-blue-500', 'bg-blue-500', 'border-red-500', 'bg-red-500');
+                btn.classList.add('border-gray-200');
             });
 
             const statusMap = {
@@ -2735,14 +2748,43 @@
 
             const activeBtn = document.getElementById(statusMap[status]);
             if (activeBtn) {
+                activeBtn.classList.remove('border-gray-200');
                 if (status === 'all') {
-                    activeBtn.classList.add('active', 'glass-btn-green');
-                } else {
-                    activeBtn.classList.add('active');
+                    activeBtn.classList.add('border-vena-green', 'bg-vena-green', 'text-white');
+                } else if (status === 'Closed Won') {
+                    activeBtn.classList.add('border-green-500', 'bg-green-500', 'text-white');
+                } else if (status === 'In Progress') {
+                    activeBtn.classList.add('border-blue-500', 'bg-blue-500', 'text-white');
+                } else if (status === 'Closed Lost') {
+                    activeBtn.classList.add('border-red-500', 'bg-red-500', 'text-white');
                 }
             }
 
             renderCalendar();
+        }
+
+        function setTimelineView(view) {
+            timelineView = view;
+
+            // Update button styles
+            document.querySelectorAll('.timeline-view-btn').forEach(btn => {
+                btn.classList.remove('border-vena-green', 'bg-vena-green', 'text-white');
+                btn.classList.add('border-gray-200');
+            });
+            const activeBtn = document.getElementById(`view-${view}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-gray-200');
+                activeBtn.classList.add('border-vena-green', 'bg-vena-green', 'text-white');
+            }
+
+            renderCalendar();
+        }
+
+        function scrollTimeline(amount) {
+            const container = document.getElementById('calendar-timeline');
+            if (container) {
+                container.scrollBy({ left: amount, behavior: 'smooth' });
+            }
         }
 
         function getCalendarDateRange() {
@@ -2826,30 +2868,50 @@
             } else {
                 noResults.classList.add('hidden');
 
-                // Generate week columns based on the period
-                const weeks = [];
+                // Generate time columns based on view type
+                const timePeriods = [];
                 const today = new Date();
-                let currentWeekStart = new Date(startDate);
-                currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of week
 
-                while (currentWeekStart <= endDate) {
-                    const weekEnd = new Date(currentWeekStart);
-                    weekEnd.setDate(weekEnd.getDate() + 6);
-                    const isCurrentWeek = today >= currentWeekStart && today <= weekEnd;
+                if (timelineView === 'monthly') {
+                    // Monthly view - generate months
+                    let currentMonth = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+                    while (currentMonth <= endDate) {
+                        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+                        const isCurrentMonth = today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
 
-                    weeks.push({
-                        start: new Date(currentWeekStart),
-                        end: weekEnd,
-                        label: `${currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-                        isCurrentWeek
-                    });
+                        timePeriods.push({
+                            start: new Date(currentMonth),
+                            end: monthEnd,
+                            label: currentMonth.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+                            isCurrent: isCurrentMonth
+                        });
 
-                    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                        currentMonth.setMonth(currentMonth.getMonth() + 1);
+                    }
+                } else {
+                    // Weekly view - generate weeks
+                    let currentWeekStart = new Date(startDate);
+                    currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+
+                    while (currentWeekStart <= endDate) {
+                        const weekEnd = new Date(currentWeekStart);
+                        weekEnd.setDate(weekEnd.getDate() + 6);
+                        const isCurrentWeek = today >= currentWeekStart && today <= weekEnd;
+
+                        timePeriods.push({
+                            start: new Date(currentWeekStart),
+                            end: weekEnd,
+                            label: currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            isCurrent: isCurrentWeek
+                        });
+
+                        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                    }
                 }
 
                 // Build timeline header
-                const headerCells = weeks.map(week =>
-                    `<div class="timeline-header-cell ${week.isCurrentWeek ? 'today' : ''}">${week.label}</div>`
+                const headerCells = timePeriods.map(period =>
+                    `<div class="timeline-header-cell ${period.isCurrent ? 'today' : ''}">${period.label}</div>`
                 ).join('');
 
                 // Build timeline rows
@@ -2858,17 +2920,16 @@
                     const statusClass = account.status === 'Closed Won' ? 'status-won' :
                                        account.status === 'In Progress' ? 'status-progress' : 'status-lost';
 
-                    // Find which week the renewal falls in
+                    // Find which period the renewal falls in
                     let barPosition = null;
-                    weeks.forEach((week, index) => {
-                        if (renewalDate >= week.start && renewalDate <= week.end) {
+                    timePeriods.forEach((period, index) => {
+                        if (renewalDate >= period.start && renewalDate <= period.end) {
                             barPosition = index;
                         }
                     });
 
-                    // Create empty cells
-                    const cells = weeks.map((week, index) => {
-                        const isCurrentWeek = week.isCurrentWeek;
+                    // Create cells
+                    const cells = timePeriods.map((period, index) => {
                         let cellContent = '';
 
                         if (barPosition === index) {
@@ -2879,7 +2940,7 @@
                             `;
                         }
 
-                        return `<div class="timeline-cell ${isCurrentWeek ? 'today' : ''}">${cellContent}</div>`;
+                        return `<div class="timeline-cell ${period.isCurrent ? 'today' : ''}">${cellContent}</div>`;
                     }).join('');
 
                     return `
