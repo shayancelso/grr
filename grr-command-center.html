@@ -1,0 +1,3439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRR Command Center | Vena Solutions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        vena: {
+                            tuscany: '#C34F2E',
+                            green: '#225D38',
+                            'green-light': '#2d7a4a',
+                            'tuscany-light': '#d4735a',
+                            'tuscany-dark': '#a3412a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-link.active {
+            background-color: rgba(255,255,255,0.15);
+            border-left: 3px solid #C34F2E;
+        }
+
+        .scenario-pill {
+            transition: all 0.2s ease;
+            border-color: #E5E7EB;
+            color: #4B5563;
+        }
+
+        .scenario-pill.active {
+            background-color: #C34F2E;
+            color: #fff;
+            border-color: #C34F2E;
+        }
+
+        .stat-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .range-input {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 9999px;
+            background: linear-gradient(90deg, #C34F2E, #225D38);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .range-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 9999px;
+            background: #fff;
+            border: 3px solid #C34F2E;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .range-input::-webkit-slider-thumb:hover {
+            transform: scale(1.05);
+        }
+
+        .range-input::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 9999px;
+            background: #fff;
+            border: 3px solid #C34F2E;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .range-input::-moz-range-thumb:hover {
+            transform: scale(1.05);
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .risk-high { background-color: #FEE2E2; color: #991B1B; }
+        .risk-medium { background-color: #FEF3C7; color: #92400E; }
+        .risk-low { background-color: #D1FAE5; color: #065F46; }
+
+        .status-closed-lost { background-color: #FEE2E2; color: #991B1B; }
+        .status-in-progress { background-color: #DBEAFE; color: #1E40AF; }
+        .status-closed-won { background-color: #D1FAE5; color: #065F46; }
+
+        .tier-enterprise { background-color: #EDE9FE; color: #5B21B6; }
+        .tier-mid-market { background-color: #E0E7FF; color: #3730A3; }
+        .tier-smb { background-color: #F3F4F6; color: #374151; }
+        .tier-partner { background-color: #FCE7F3; color: #9D174D; }
+
+        .modal-overlay {
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .upload-zone {
+            border: 2px dashed #CBD5E1;
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #C34F2E;
+            background-color: rgba(195,79,46,0.05);
+        }
+
+        .grr-gauge {
+            background: conic-gradient(
+                from 180deg,
+                #991B1B 0deg,
+                #EAB308 120deg,
+                #059669 240deg,
+                #059669 360deg
+            );
+        }
+
+        .table-row:hover {
+            background-color: #F9FAFB;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem;
+            background: #1F2937;
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 0.25rem;
+            white-space: nowrap;
+            z-index: 50;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+
+        /* ============================================
+           GLASSMORPHISM STYLES
+           ============================================ */
+
+        /* Main content background */
+        .main-content-bg {
+            background: #f9fafb;
+            min-height: 100vh;
+        }
+
+        /* Base glass card effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.06),
+                0 2px 8px rgba(0, 0, 0, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 20px 48px rgba(0, 0, 0, 0.1),
+                0 8px 16px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* Stat card gradient variants */
+        .glass-stat-green {
+            background: linear-gradient(135deg, rgba(34, 93, 56, 0.12) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .glass-stat-blue {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .glass-stat-red {
+            background: linear-gradient(135deg, rgba(195, 79, 46, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .glass-stat-purple {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Glass button styles */
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .glass-btn.active {
+            background: linear-gradient(135deg, #C34F2E 0%, #d4735a 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 16px rgba(195, 79, 46, 0.35);
+        }
+
+        .glass-btn-green.active {
+            background: linear-gradient(135deg, #225D38 0%, #2d7a4a 100%);
+            box-shadow: 0 4px 16px rgba(34, 93, 56, 0.35);
+        }
+
+        /* Status-specific active button styles */
+        #status-won.active {
+            background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+            box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+        }
+
+        #status-progress.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+        }
+
+        #status-lost.active {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+        }
+
+        /* Table row hover for glass tables */
+        .glass-card table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Subtle pulse animation for important elements */
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .pulse-subtle {
+            animation: subtlePulse 2s ease-in-out infinite;
+        }
+
+        /* Calendar card status tints */
+        .glass-card-won {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-left: 4px solid #22c55e;
+        }
+
+        .glass-card-progress {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .glass-card-lost {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(255, 255, 255, 0.8) 100%);
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Icon badge gradients */
+        .icon-badge-green {
+            background: linear-gradient(135deg, #225D38 0%, #2d7a4a 100%);
+            box-shadow: 0 4px 12px rgba(34, 93, 56, 0.3);
+        }
+
+        .icon-badge-blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .icon-badge-red {
+            background: linear-gradient(135deg, #C34F2E 0%, #d4735a 100%);
+            box-shadow: 0 4px 12px rgba(195, 79, 46, 0.3);
+        }
+
+        .icon-badge-purple {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .icon-badge-amber {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .icon-badge-cyan {
+            background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .icon-badge-rose {
+            background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+        }
+
+        /* Stat card gradient variants for adoption insights */
+        .glass-stat-amber {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .glass-stat-cyan {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .glass-stat-rose {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgba(255, 255, 255, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Refined status badges with glass effect */
+        .status-badge-glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+            font-size: 0.7rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .status-badge-glass.status-closed-won {
+            background: rgba(34, 197, 94, 0.15);
+            color: #15803d;
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .status-badge-glass.status-in-progress {
+            background: rgba(59, 130, 246, 0.15);
+            color: #1d4ed8;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .status-badge-glass.status-closed-lost {
+            background: rgba(239, 68, 68, 0.15);
+            color: #b91c1c;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Calendar card animation */
+        .calendar-card-item {
+            animation: cardFadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Timeline/Gantt Styles */
+        .timeline-container {
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .timeline-header {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.9);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .timeline-header-cell {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .timeline-header-cell:last-child {
+            border-right: none;
+        }
+
+        .timeline-header-cell.today {
+            background: rgba(195, 79, 46, 0.1);
+            color: #C34F2E;
+        }
+
+        .timeline-body {
+            position: relative;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+            min-height: 56px;
+            transition: background 0.15s ease;
+        }
+
+        .timeline-row:hover {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .timeline-account-info {
+            width: 240px;
+            min-width: 240px;
+            padding: 12px 16px;
+            border-right: 2px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.95);
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .timeline-track {
+            flex: 1;
+            display: flex;
+            position: relative;
+            min-height: 56px;
+        }
+
+        .timeline-cell {
+            flex: 1;
+            min-width: 120px;
+            border-right: 1px solid #f3f4f6;
+            position: relative;
+        }
+
+        .timeline-cell.today {
+            background: rgba(195, 79, 46, 0.03);
+        }
+
+        .timeline-bar {
+            position: absolute;
+            height: 32px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            padding: 0 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .timeline-bar:hover {
+            transform: translateY(-50%) scale(1.02);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .timeline-bar.status-won {
+            background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+        }
+
+        .timeline-bar.status-progress {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+        }
+
+        .timeline-bar.status-lost {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+        }
+
+        .timeline-today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #C34F2E;
+            z-index: 8;
+        }
+
+        .timeline-today-line::before {
+            content: 'Today';
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #C34F2E;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        /* Enhanced metric typography */
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .metric-value-lg {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        /* Smooth page transitions */
+        .view-transition {
+            animation: fadeSlideIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Card stagger animation */
+        .stagger-item {
+            opacity: 0;
+            animation: fadeSlideIn 0.4s ease-out forwards;
+        }
+
+        .stagger-item:nth-child(1) { animation-delay: 0.05s; }
+        .stagger-item:nth-child(2) { animation-delay: 0.1s; }
+        .stagger-item:nth-child(3) { animation-delay: 0.15s; }
+        .stagger-item:nth-child(4) { animation-delay: 0.2s; }
+        .stagger-item:nth-child(5) { animation-delay: 0.25s; }
+        .stagger-item:nth-child(6) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- App Container -->
+    <div id="app" class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-vena-green text-white flex flex-col fixed h-full z-40">
+            <!-- Logo -->
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-vena-tuscany rounded-lg flex items-center justify-center font-bold text-lg">
+                        GRR
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-lg leading-tight">Command Center</h1>
+                        <p class="text-xs text-white/60">Vena Solutions</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 py-4">
+                <div class="px-3 mb-2">
+                    <p class="text-xs text-white/40 uppercase tracking-wider font-medium px-3">Main</p>
+                </div>
+                <a href="#" onclick="showView('dashboard')" class="sidebar-link active flex items-center gap-3 px-6 py-3 text-sm" data-view="dashboard">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#" onclick="showView('simulator')" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm" data-view="simulator">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    GRR Simulator
+                    <span class="ml-auto bg-vena-tuscany text-xs px-2 py-0.5 rounded-full">New</span>
+                </a>
+                <a href="#" onclick="showView('accounts')" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm" data-view="accounts">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Accounts
+                </a>
+                <a href="#" onclick="showView('calendar')" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm" data-view="calendar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Renewal Calendar
+                    <span class="ml-auto bg-vena-tuscany text-xs px-2 py-0.5 rounded-full">New</span>
+                </a>
+
+                <div class="px-3 mt-6 mb-2">
+                    <p class="text-xs text-white/40 uppercase tracking-wider font-medium px-3">Collaborate</p>
+                </div>
+                <a href="#" onclick="showView('meeting')" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm" data-view="meeting">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    1:1 Meeting Mode
+                </a>
+
+                <div class="px-3 mt-6 mb-2">
+                    <p class="text-xs text-white/40 uppercase tracking-wider font-medium px-3">Data</p>
+                </div>
+                <a href="#" onclick="showUploadModal()" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Import Data
+                </a>
+                <a href="#" onclick="exportData()" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Export Data
+                </a>
+
+                <div class="px-3 mt-6 mb-2">
+                    <p class="text-xs text-white/40 uppercase tracking-wider font-medium px-3">Session</p>
+                </div>
+                <a href="#" onclick="saveSession()" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                    </svg>
+                    Save Session
+                </a>
+                <a href="#" onclick="document.getElementById('session-file-input').click()" class="sidebar-link flex items-center gap-3 px-6 py-3 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Load Session
+                </a>
+                <input type="file" id="session-file-input" accept=".json" class="hidden" onchange="loadSession(event)">
+            </nav>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-white/10">
+                <div class="flex items-center justify-between text-xs text-white/40">
+                    <span>GRR Hackathon 2026</span>
+                    <button onclick="clearAllData()" class="hover:text-white/60 transition">Reset</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 main-content-bg">
+            <!-- Header -->
+            <header class="bg-white/80 backdrop-blur-md border-b border-gray-200/50 px-8 py-4 sticky top-0 z-30">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 id="page-title" class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                        <p id="page-subtitle" class="text-sm text-gray-500">Overview of your renewal portfolio</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Last updated</p>
+                            <p id="last-updated" class="text-sm font-medium text-gray-700">Never</p>
+                        </div>
+                        <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Import CSV
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view p-8">
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-20">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Data Imported Yet</h3>
+                    <p class="text-gray-500 mb-6 max-w-md mx-auto">Upload your Salesforce export to start tracking renewals and simulating GRR impact.</p>
+                    <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-6 py-3 rounded-lg font-medium transition inline-flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        Import Salesforce CSV
+                    </button>
+                    <button onclick="loadDemoData()" class="ml-3 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition inline-flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                        Load Demo Data
+                    </button>
+                </div>
+
+                <!-- Dashboard Content (hidden until data loaded) -->
+                <div id="dashboard-content" class="hidden">
+                    <!-- Stats Row -->
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <!-- GRR Score -->
+                        <div class="stat-card glass-card glass-stat-green p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Projected GRR</p>
+                                    <p id="stat-grr" class="metric-value text-gray-800 mt-2">--</p>
+                                    <p id="stat-grr-change" class="text-sm text-gray-500 mt-2">vs. target: 90%</p>
+                                    <span id="stat-scenario" class="inline-flex mt-3 text-xs font-semibold px-3 py-1 rounded-full bg-vena-tuscany/15 text-vena-tuscany">Base Case</span>
+                                </div>
+                                <div class="w-12 h-12 icon-badge-green rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total ARR -->
+                        <div class="stat-card glass-card glass-stat-blue p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Total ARR</p>
+                                    <p id="stat-arr" class="metric-value text-gray-800 mt-2">--</p>
+                                    <p id="stat-accounts" class="text-sm text-gray-500 mt-2">-- accounts</p>
+                                </div>
+                                <div class="w-12 h-12 icon-badge-blue rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ARR at Risk -->
+                        <div class="stat-card glass-card glass-stat-red p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">ARR at Risk</p>
+                                    <p id="stat-at-risk" class="metric-value text-red-600 mt-2">--</p>
+                                    <p id="stat-at-risk-pct" class="text-sm text-gray-500 mt-2">-- of total</p>
+                                </div>
+                                <div class="w-12 h-12 icon-badge-red rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Renewals This Quarter -->
+                        <div class="stat-card glass-card glass-stat-purple p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Renewals This Quarter</p>
+                                    <p id="stat-renewals-qtr" class="metric-value text-gray-800 mt-2">--</p>
+                                    <p id="stat-renewals-arr" class="text-sm text-gray-500 mt-2">-- ARR</p>
+                                </div>
+                                <div class="w-12 h-12 icon-badge-purple rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-2 gap-6 mb-8">
+                        <!-- Risk Distribution -->
+                        <div class="glass-card p-6 stagger-item">
+                            <h3 class="font-semibold text-gray-800 mb-4">Risk Distribution</h3>
+                            <div class="h-64">
+                                <canvas id="chart-risk"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Renewal Timeline -->
+                        <div class="glass-card p-6 stagger-item">
+                            <h3 class="font-semibold text-gray-800 mb-4">Renewal Timeline (Next 90 Days)</h3>
+                            <div class="h-64">
+                                <canvas id="chart-timeline"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Adoption Insights -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <div class="stat-card glass-card glass-stat-amber p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Declining Usage Accounts</p>
+                                    <p id="adoption-decline-count" class="text-3xl font-bold text-amber-600 mt-2">--</p>
+                                    <p id="adoption-decline-arr" class="text-sm text-gray-500 mt-1">-- ARR at stake</p>
+                                </div>
+                                <div class="w-10 h-10 icon-badge-amber rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-card glass-stat-cyan p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Avg Product Adoption Score</p>
+                                    <p id="adoption-avg-score" class="text-3xl font-bold text-cyan-600 mt-2">--</p>
+                                    <p id="adoption-avg-text" class="text-sm text-gray-500 mt-1">No usage data</p>
+                                </div>
+                                <div class="w-10 h-10 icon-badge-cyan rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-card glass-stat-rose p-6 stagger-item">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600 font-medium">Support Escalations (30d)</p>
+                                    <p id="adoption-escalations-count" class="text-3xl font-bold text-rose-600 mt-2">--</p>
+                                    <p id="adoption-escalations-text" class="text-sm text-gray-500 mt-1">-- accounts impacted</p>
+                                </div>
+                                <div class="w-10 h-10 icon-badge-rose rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card mb-8 stagger-item overflow-hidden">
+                        <div class="p-6 border-b border-white/30 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Top Adoption Risks</h3>
+                                <p class="text-sm text-gray-500">Blends ARR, usage score, and escalations</p>
+                            </div>
+                            <button onclick="showView('meeting')" class="text-sm text-vena-tuscany hover:underline font-medium">Review in Meeting Mode</button>
+                        </div>
+                        <div id="adoption-watchlist" class="divide-y divide-gray-100/50">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- At-Risk Accounts Table -->
+                    <div class="glass-card stagger-item overflow-hidden">
+                        <div class="p-6 border-b border-white/30">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-gray-800">High Priority Accounts</h3>
+                                <button onclick="showView('accounts')" class="text-sm text-vena-tuscany hover:underline">View all accounts</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-white/40 text-left">
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">ARR</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Date</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="priority-accounts-table" class="divide-y divide-gray-100/50">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRR Simulator View -->
+            <div id="view-simulator" class="view p-8 hidden">
+                <div id="simulator-empty" class="text-center py-20">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Data for Simulation</h3>
+                    <p class="text-gray-500 mb-6">Import your data to start simulating GRR scenarios.</p>
+                    <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-6 py-3 rounded-lg font-medium transition">
+                        Import Data
+                    </button>
+                </div>
+
+                <div id="simulator-content" class="hidden">
+                    <!-- GRR Impact Header -->
+                    <div class="bg-gradient-to-r from-vena-green to-vena-green-light rounded-xl p-8 text-white mb-8">
+                        <div class="grid grid-cols-3 gap-8">
+                            <div>
+                                <p class="text-white/70 text-sm font-medium">Current Projected GRR</p>
+                                <p id="sim-current-grr" class="text-5xl font-bold mt-2">--</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-white/70 text-sm font-medium">If All "In Progress" Accounts Close</p>
+                                <p id="sim-potential-grr" class="text-5xl font-bold mt-2">--</p>
+                                <p id="sim-grr-improvement" class="text-sm mt-2 bg-white/20 rounded-full px-3 py-1 inline-block">+-- improvement</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-white/70 text-sm font-medium">ARR You Could Save</p>
+                                <p id="sim-arr-saveable" class="text-5xl font-bold mt-2">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                        <div class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-800">How to use the GRR Simulator</p>
+                                <p class="text-sm text-blue-700 mt-1">Toggle account statuses below to see real-time GRR impact. Use this in your 1:1s to prioritize which accounts to focus on for maximum GRR improvement.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scenario Controls -->
+                    <div class="flex flex-wrap gap-4 mb-6 items-start">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6 flex-1 min-w-[280px] max-w-3xl">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">Scenario Planner</h4>
+                                    <p class="text-sm text-gray-500">Flip between forecast modes instantly.</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="base" onclick="setScenario('base')">Base Case</button>
+                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="best" onclick="setScenario('best')">Optimistic</button>
+                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="worst" onclick="setScenario('worst')">Pessimistic</button>
+                            </div>
+                            <p id="scenario-description" class="text-sm text-gray-500">Select a scenario to begin.</p>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6 w-full lg:max-w-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">Fine-tune Assumptions</h4>
+                                    <p class="text-sm text-gray-500">Dial-in overrides when you need them.</p>
+                                </div>
+                                <button id="fine-tune-toggle" onclick="toggleFineTune()" class="text-sm font-medium text-vena-tuscany flex items-center gap-1">
+                                    <span>Expand</span>
+                                    <svg class="w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.146l3.71-3.916a.75.75 0 111.08 1.04l-4.24 4.47a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div id="fine-tune-panel" class="space-y-4 mt-4 hidden">
+                                <div>
+                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                                        <p>High Risk Renewal Probability</p>
+                                        <span id="risk-value-High">--%</span>
+                                    </div>
+                                    <input type="range" min="0" max="100" step="5" id="risk-slider-High" class="range-input" oninput="updateRiskOverride('High', this.value)">
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                                        <p>Medium Risk Renewal Probability</p>
+                                        <span id="risk-value-Medium">--%</span>
+                                    </div>
+                                    <input type="range" min="0" max="100" step="5" id="risk-slider-Medium" class="range-input" oninput="updateRiskOverride('Medium', this.value)">
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                                        <p>Low Risk Renewal Probability</p>
+                                        <span id="risk-value-Low">--%</span>
+                                    </div>
+                                    <input type="range" min="0" max="100" step="5" id="risk-slider-Low" class="range-input" oninput="updateRiskOverride('Low', this.value)">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                                    <div>
+                                        <label class="text-sm text-gray-600">Expansion Upside %</label>
+                                        <input type="number" id="sim-expansion-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm" onchange="updateGrowthAssumption('expansion', this.value)">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm text-gray-600">Downsell Risk %</label>
+                                        <input type="number" id="sim-downsell-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm" onchange="updateGrowthAssumption('downsell', this.value)">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="p-6 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-gray-800">Account Status Simulator</h3>
+                                <div class="flex items-center gap-4">
+                                    <select id="sim-filter-risk" onchange="renderSimulator()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                        <option value="all">All Risk Levels</option>
+                                        <option value="High">High Risk Only</option>
+                                        <option value="Medium">Medium Risk Only</option>
+                                        <option value="Low">Low Risk Only</option>
+                                    </select>
+                                    <select id="sim-sort" onchange="renderSimulator()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                        <option value="arr-desc">ARR (High to Low)</option>
+                                        <option value="arr-asc">ARR (Low to High)</option>
+                                        <option value="renewal-asc">Renewal Date (Soonest)</option>
+                                        <option value="risk-desc">Risk Level (Highest)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                            <table class="w-full">
+                                <thead class="sticky top-0 bg-white">
+                                    <tr class="bg-gray-50 text-left">
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">ARR</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">GRR Impact</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="simulator-table" class="divide-y divide-gray-100">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts View -->
+            <div id="view-accounts" class="view p-8 hidden">
+                <div id="accounts-empty" class="text-center py-20">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Accounts Yet</h3>
+                    <p class="text-gray-500 mb-6">Import your Salesforce data to see all your accounts.</p>
+                    <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-6 py-3 rounded-lg font-medium transition">
+                        Import Data
+                    </button>
+                </div>
+
+                <div id="accounts-content" class="hidden">
+                    <!-- Filters -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <div class="flex-1 min-w-[200px]">
+                                <input type="text" id="search-accounts" placeholder="Search accounts..."
+                                    class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20 focus:border-vena-tuscany"
+                                    oninput="renderAccounts()">
+                            </div>
+                            <select id="filter-tier" onchange="renderAccounts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                <option value="all">All Tiers</option>
+                                <option value="Enterprise">Enterprise</option>
+                                <option value="Mid-Market">Mid-Market</option>
+                                <option value="SMB">SMB</option>
+                                <option value="Partner">Partner</option>
+                            </select>
+                            <select id="filter-risk" onchange="renderAccounts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                <option value="all">All Risk Levels</option>
+                                <option value="High">High Risk</option>
+                                <option value="Medium">Medium Risk</option>
+                                <option value="Low">Low Risk</option>
+                            </select>
+                            <select id="filter-status" onchange="renderAccounts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                <option value="all">All Statuses</option>
+                                <option value="Closed Lost">Closed Lost</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Closed Won">Closed Won</option>
+                            </select>
+                            <select id="sort-accounts" onchange="renderAccounts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                                <option value="renewal-asc">Renewal Date (Soonest)</option>
+                                <option value="renewal-desc">Renewal Date (Latest)</option>
+                                <option value="arr-desc">ARR (Highest)</option>
+                                <option value="arr-asc">ARR (Lowest)</option>
+                                <option value="name-asc">Name (A-Z)</option>
+                                <option value="risk-desc">Risk Level (Highest)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Accounts Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-gray-50 text-left">
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">ARR</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Date</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Health</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accounts-table" class="divide-y divide-gray-100">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1:1 Meeting Mode View -->
+            <div id="view-meeting" class="view p-8 hidden">
+                <div id="meeting-empty" class="text-center py-20">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Data for Meeting Mode</h3>
+                    <p class="text-gray-500 mb-6">Import your data to use 1:1 Meeting Mode.</p>
+                    <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-6 py-3 rounded-lg font-medium transition">
+                        Import Data
+                    </button>
+                </div>
+
+                <div id="meeting-content" class="hidden">
+                    <!-- Meeting Header -->
+                    <div class="bg-gradient-to-r from-vena-tuscany to-vena-tuscany-light rounded-xl p-6 text-white mb-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-xl font-semibold">1:1 Meeting Mode</h3>
+                                <p class="text-white/70 mt-1">Focus on accounts that need discussion. Sorted by priority (ARR x Risk).</p>
+                            </div>
+                            <button onclick="exportMeetingNotes()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Export Summary
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Stats -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-white rounded-lg p-4 border border-gray-100">
+                            <p class="text-sm text-gray-500">Accounts to Discuss</p>
+                            <p id="meeting-count" class="text-2xl font-bold text-gray-800">--</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 border border-gray-100">
+                            <p class="text-sm text-gray-500">Total ARR at Stake</p>
+                            <p id="meeting-arr" class="text-2xl font-bold text-gray-800">--</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 border border-gray-100">
+                            <p class="text-sm text-gray-500">Open Save Plans</p>
+                            <p id="meeting-actions" class="text-2xl font-bold text-gray-800">--</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-lg p-4 border border-gray-100">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-semibold text-gray-800">Save Plan Tracker</h4>
+                                <span id="save-plan-health" class="text-sm font-medium text-gray-500">--</span>
+                            </div>
+                            <div id="save-plan-list" class="space-y-3 max-h-64 overflow-auto">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 border border-gray-100">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-semibold text-gray-800">Collaboration Feed</h4>
+                                <p class="text-xs text-gray-400">Last 8 updates</p>
+                            </div>
+                            <div id="activity-feed" class="space-y-3 max-h-64 overflow-auto">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Accounts -->
+                    <div id="meeting-accounts" class="space-y-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Renewal Calendar View -->
+            <div id="view-calendar" class="view p-8 hidden">
+                <div id="calendar-empty" class="text-center py-20">
+                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">No Renewals to Display</h3>
+                    <p class="text-gray-500 mb-6">Import your data to see the renewal calendar.</p>
+                    <button onclick="showUploadModal()" class="bg-vena-tuscany hover:bg-vena-tuscany-dark text-white px-6 py-3 rounded-lg font-medium transition">
+                        Import Data
+                    </button>
+                </div>
+
+                <div id="calendar-content" class="hidden">
+                    <!-- Calendar Header with Filters -->
+                    <div class="glass-card p-6 mb-6 stagger-item">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <!-- Time Period Filters -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-3">Time Period</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="setCalendarPeriod('week')" id="period-week" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
+                                        This Week
+                                    </button>
+                                    <button onclick="setCalendarPeriod('month')" id="period-month" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
+                                        This Month
+                                    </button>
+                                    <button onclick="setCalendarPeriod('quarter')" id="period-quarter" class="calendar-period-btn glass-btn active px-4 py-2 rounded-full text-sm font-medium transition">
+                                        This Quarter
+                                    </button>
+                                    <button onclick="setCalendarPeriod('year')" id="period-year" class="calendar-period-btn glass-btn px-4 py-2 rounded-full text-sm font-medium transition">
+                                        This Year
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Status Filters -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-3">Status</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="setCalendarStatus('all')" id="status-all" class="calendar-status-btn glass-btn glass-btn-green active px-4 py-2 rounded-full text-sm font-medium transition">
+                                        All
+                                    </button>
+                                    <button onclick="setCalendarStatus('Closed Won')" id="status-won" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-green-50 hover:text-green-600 transition">
+                                        Closed Won
+                                    </button>
+                                    <button onclick="setCalendarStatus('In Progress')" id="status-progress" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-50 hover:text-blue-600 transition">
+                                        In Progress
+                                    </button>
+                                    <button onclick="setCalendarStatus('Closed Lost')" id="status-lost" class="calendar-status-btn glass-btn px-4 py-2 rounded-full text-sm font-medium hover:bg-red-50 hover:text-red-600 transition">
+                                        Closed Lost
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="glass-card p-5 stagger-item border-l-4 border-gray-400">
+                            <p class="text-sm text-gray-600 font-medium">Total ARR to Renew</p>
+                            <p id="cal-total-arr" class="text-2xl font-bold text-gray-800 mt-2">--</p>
+                            <p id="cal-total-count" class="text-sm text-gray-500 mt-1">-- renewals</p>
+                        </div>
+                        <div class="glass-card glass-card-won p-5 stagger-item">
+                            <p class="text-sm text-gray-600 font-medium">Closed Won</p>
+                            <p id="cal-won-arr" class="text-2xl font-bold text-green-600 mt-2">--</p>
+                            <p id="cal-won-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        </div>
+                        <div class="glass-card glass-card-progress p-5 stagger-item">
+                            <p class="text-sm text-gray-600 font-medium">In Progress</p>
+                            <p id="cal-progress-arr" class="text-2xl font-bold text-blue-600 mt-2">--</p>
+                            <p id="cal-progress-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        </div>
+                        <div class="glass-card glass-card-lost p-5 stagger-item">
+                            <p class="text-sm text-gray-600 font-medium">Closed Lost</p>
+                            <p id="cal-lost-arr" class="text-2xl font-bold text-red-600 mt-2">--</p>
+                            <p id="cal-lost-count" class="text-sm text-gray-500 mt-1">-- accounts</p>
+                        </div>
+                    </div>
+
+                    <!-- Timeline View -->
+                    <div class="glass-card overflow-hidden">
+                        <div id="calendar-timeline" class="timeline-container">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Empty filtered state -->
+                    <div id="calendar-no-results" class="hidden text-center py-12">
+                        <p class="text-gray-500">No renewals match your current filters.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="hideUploadModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full animate-slide-in relative">
+                <div class="p-6 border-b border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800">Import Salesforce Data</h3>
+                        <button onclick="hideUploadModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div id="upload-zone" class="upload-zone rounded-xl p-8 text-center cursor-pointer"
+                        onclick="document.getElementById('file-input').click()"
+                        ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                        <input type="file" id="file-input" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                        </div>
+                        <p class="text-gray-700 font-medium">Drop your CSV file here</p>
+                        <p class="text-gray-500 text-sm mt-1">or click to browse</p>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Expected columns:</p>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p>• Account Name, ARR, Renewal Date</p>
+                            <p>• Account Health, Churn Risk, Churn Risk Notes</p>
+                            <p>• Usage Score/Trend, Support Escalations, NPS (optional)</p>
+                            <p>• Owner, Tier (Enterprise/Mid-Market/SMB/Partner)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Detail Modal -->
+    <div id="account-modal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="hideAccountModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-slide-in relative">
+                <div id="account-modal-content">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        function createDefaultState() {
+            return {
+                accounts: [],
+                lastUpdated: null,
+                simulation: {
+                    scenario: 'base',
+                    riskOverrides: { High: null, Medium: null, Low: null },
+                    expansionRate: 0.05,
+                    downsellRate: 0.02
+                },
+                auditLog: []
+            };
+        }
+
+        let state = createDefaultState();
+        ensureStateDefaults();
+
+        function ensureStateDefaults() {
+            if (!state.simulation) {
+                state.simulation = createDefaultState().simulation;
+            } else {
+                state.simulation.riskOverrides = Object.assign({ High: null, Medium: null, Low: null }, state.simulation.riskOverrides || {});
+                if (typeof state.simulation.expansionRate !== 'number') state.simulation.expansionRate = 0.05;
+                if (typeof state.simulation.downsellRate !== 'number') state.simulation.downsellRate = 0.02;
+                if (!state.simulation.scenario) state.simulation.scenario = 'base';
+            }
+
+            if (!Array.isArray(state.auditLog)) {
+                state.auditLog = [];
+            }
+
+            state.accounts = (state.accounts || []).map((account, idx) => {
+                const hydrated = account || {};
+                hydrated.id = hydrated.id ?? idx + 1;
+                hydrated.interventions = Array.isArray(hydrated.interventions) ? hydrated.interventions.map(intervention => ({
+                    text: intervention.text || '',
+                    owner: intervention.owner || hydrated.owner || 'Unassigned',
+                    dueDate: intervention.dueDate || null,
+                    done: !!intervention.done,
+                    createdAt: intervention.createdAt || new Date().toISOString()
+                })) : [];
+                hydrated.usageTrend = hydrated.usageTrend || 'flat';
+                if (hydrated.escalations === undefined || hydrated.escalations === null) hydrated.escalations = 0;
+                return hydrated;
+            });
+        }
+
+        // Risk level weights for GRR calculation (defaults per scenario)
+        const BASE_RISK_WEIGHTS = {
+            'High': 0.3,      // 30% chance of renewal
+            'Medium': 0.6,    // 60% chance of renewal
+            'Low': 0.9        // 90% chance of renewal
+        };
+
+        // Status weights override risk weights
+        const BASE_STATUS_WEIGHTS = {
+            'Closed Lost': 0,
+            'In Progress': 0.5,
+            'Closed Won': 1.0
+        };
+
+        const SCENARIOS = {
+            base: {
+                label: 'Base Case',
+                description: 'Reflects CRM forecast and current risk model.',
+                risk: BASE_RISK_WEIGHTS,
+                status: BASE_STATUS_WEIGHTS,
+                expansionRate: 0.05,
+                downsellRate: 0.02
+            },
+            best: {
+                label: 'Optimistic',
+                description: 'Assumes recovery on risky accounts and mild expansion.',
+                risk: { High: 0.6, Medium: 0.75, Low: 0.95 },
+                status: { 'Closed Lost': 0, 'In Progress': 0.7, 'Closed Won': 1.05 },
+                expansionRate: 0.08,
+                downsellRate: 0.0
+            },
+            worst: {
+                label: 'Pessimistic',
+                description: 'Stress-test scenario with softer renewals and downsell risk.',
+                risk: { High: 0.15, Medium: 0.4, Low: 0.75 },
+                status: { 'Closed Lost': 0, 'In Progress': 0.35, 'Closed Won': 0.95 },
+                expansionRate: 0.0,
+                downsellRate: 0.05
+            }
+        };
+
+        function getScenario() {
+            return SCENARIOS[state.simulation?.scenario] || SCENARIOS.base;
+        }
+
+        function getRiskWeight(level) {
+            const scenario = getScenario();
+            const override = state.simulation?.riskOverrides?.[level];
+            if (override !== null && override !== undefined) {
+                return Math.max(0, Math.min(1, override));
+            }
+            return scenario.risk?.[level] ?? BASE_RISK_WEIGHTS[level] ?? 0.5;
+        }
+
+        function getStatusWeight(status) {
+            const scenario = getScenario();
+            if (scenario.status?.[status] !== undefined) {
+                return scenario.status[status];
+            }
+            return BASE_STATUS_WEIGHTS[status];
+        }
+
+        function getGrowthMultiplier() {
+            const exp = state.simulation?.expansionRate ?? getScenario().expansionRate ?? 0;
+            const down = state.simulation?.downsellRate ?? getScenario().downsellRate ?? 0;
+            const multiplier = 1 + exp - down;
+            return Math.max(0, multiplier);
+        }
+
+        function setScenario(name) {
+            if (!state.simulation) state.simulation = createDefaultState().simulation;
+            state.simulation.scenario = name;
+            state.simulation.riskOverrides = { High: null, Medium: null, Low: null };
+            const scenario = getScenario();
+            state.simulation.expansionRate = scenario.expansionRate ?? state.simulation.expansionRate;
+            state.simulation.downsellRate = scenario.downsellRate ?? state.simulation.downsellRate;
+            saveState();
+            renderDashboard();
+            renderSimulator();
+        }
+
+        function updateRiskOverride(level, value) {
+            if (!state.simulation) state.simulation = createDefaultState().simulation;
+            const numeric = Math.max(0, Math.min(1, Number(value) / 100));
+            state.simulation.riskOverrides[level] = numeric;
+            saveState();
+            renderDashboard();
+            renderSimulator();
+        }
+
+        function updateGrowthAssumption(type, value) {
+            if (!state.simulation) state.simulation = createDefaultState().simulation;
+            const numeric = Math.max(0, Math.min(0.5, Number(value) / 100));
+            if (type === 'expansion') {
+                state.simulation.expansionRate = numeric;
+            } else {
+                state.simulation.downsellRate = numeric;
+            }
+            saveState();
+            renderDashboard();
+            renderSimulator();
+        }
+
+        function toggleFineTune() {
+            const panel = document.getElementById('fine-tune-panel');
+            const toggle = document.getElementById('fine-tune-toggle');
+            if (!panel || !toggle) return;
+            const icon = toggle.querySelector('svg');
+            const label = toggle.querySelector('span');
+            const isHidden = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (label) {
+                label.textContent = isHidden ? 'Collapse' : 'Expand';
+            }
+            if (icon) {
+                icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
+        // ============================================
+        // LOCAL STORAGE
+        // ============================================
+        function saveState() {
+            localStorage.setItem('grr-command-center', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('grr-command-center');
+            if (saved) {
+                state = JSON.parse(saved);
+                ensureStateDefaults();
+                if (state.accounts.length > 0) {
+                    updateLastUpdated();
+                    renderAll();
+                }
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                state = createDefaultState();
+                localStorage.removeItem('grr-command-center');
+                location.reload();
+            }
+        }
+
+        // ============================================
+        // SESSION SAVE/LOAD (Data Portability)
+        // ============================================
+        function saveSession() {
+            if (state.accounts.length === 0) {
+                showToast('No data to save. Import data first.');
+                return;
+            }
+
+            const sessionData = {
+                version: '1.1',
+                exportedAt: new Date().toISOString(),
+                state: state
+            };
+
+            const json = JSON.stringify(sessionData, null, 2);
+            const date = new Date().toISOString().split('T')[0];
+            downloadFile(json, `grr-session-${date}.json`, 'application/json');
+            showToast('Session saved! Transfer this file to your other computer.');
+        }
+
+        function loadSession(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.json')) {
+                showToast('Please select a JSON session file');
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const sessionData = JSON.parse(e.target.result);
+
+                    // Validate session structure
+                    if (!sessionData.state || !sessionData.state.accounts) {
+                        showToast('Invalid session file format');
+                        return;
+                    }
+
+                    // Confirm before overwriting
+                    if (state.accounts.length > 0) {
+                        if (!confirm('This will replace your current data. Continue?')) {
+                            return;
+                        }
+                    }
+
+                    // Load the session
+                    state = sessionData.state;
+                    ensureStateDefaults();
+                    state.lastUpdated = new Date().toISOString();
+                    saveState();
+                    updateLastUpdated();
+                    renderAll();
+                    showToast(`Session loaded! ${state.accounts.length} accounts restored.`);
+
+                } catch (error) {
+                    showToast('Error reading session file: ' + error.message);
+                }
+            };
+
+            reader.readAsText(file);
+            event.target.value = ''; // Reset file input
+        }
+
+        // ============================================
+        // DATA IMPORT
+        // ============================================
+        function showUploadModal() {
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
+
+        function hideUploadModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) processFile(file);
+        }
+
+        function processFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showToast('Please upload a CSV file');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data.length === 0) {
+                        showToast('No data found in CSV');
+                        return;
+                    }
+
+                    // Map CSV columns to our schema
+                    state.accounts = results.data.map((row, index) => {
+                        // Try to find columns with flexible naming
+                        const getValue = (possibleNames) => {
+                            for (const name of possibleNames) {
+                                if (row[name] !== undefined) return row[name];
+                            }
+                            return '';
+                        };
+
+                        const arr = parseFloat(getValue(['ARR', 'Annual Recurring Revenue', 'ACV', 'Contract Value', 'arr']) || '0');
+                        const renewalDate = getValue(['Renewal Date', 'RenewalDate', 'Contract End Date', 'renewal_date', 'Renewal']);
+                        const usageScore = parseNumber(getValue(['Usage Score', 'Product Usage Score', 'Adoption Score', 'usage_score']));
+                        const usageTrendRaw = getValue(['Usage Trend', 'Adoption Trend', 'usage_trend']);
+                        const npsScore = parseNumber(getValue(['NPS', 'NPS Score', 'CSAT', 'nps']));
+                        const escalationCount = parseNumber(getValue(['Support Escalations', 'Escalations', 'Escalation Count', 'support_escalations']));
+                        const lastEngaged = getValue(['Last Touch', 'Last Engagement', 'Last Engaged', 'last_touch']);
+
+                        return {
+                            id: index + 1,
+                            name: getValue(['Account Name', 'AccountName', 'Name', 'Company', 'account_name']) || `Account ${index + 1}`,
+                            arr: isNaN(arr) ? 0 : arr,
+                            renewalDate: parseDate(renewalDate),
+                            health: getValue(['Account Health', 'Health', 'Health Score', 'health']) || 'Unknown',
+                            churnRisk: normalizeRisk(getValue(['Churn Risk', 'ChurnRisk', 'Risk', 'Risk Level', 'churn_risk'])),
+                            churnRiskNotes: getValue(['Churn Risk Notes', 'ChurnRiskNotes', 'Risk Notes', 'Notes', 'churn_risk_notes']) || '',
+                            owner: getValue(['Owner', 'Account Owner', 'AM', 'Account Manager', 'owner']) || 'Unassigned',
+                            tier: normalizeTier(getValue(['Tier', 'Segment', 'Account Tier', 'tier'])),
+                            status: 'In Progress', // Default status
+                            interventions: [],
+                            meetingNotes: '',
+                            usageScore: typeof usageScore === 'number' ? usageScore : null,
+                            usageTrend: normalizeUsageTrend(usageTrendRaw),
+                            nps: typeof npsScore === 'number' ? npsScore : null,
+                            escalations: Number.isFinite(escalationCount) ? Math.max(0, Math.round(escalationCount)) : 0,
+                            lastTouch: parseDate(lastEngaged)
+                        };
+                    }).filter(a => a.name && a.arr > 0); // Filter out invalid rows
+
+                    state.lastUpdated = new Date().toISOString();
+                    saveState();
+                    hideUploadModal();
+                    showToast(`Imported ${state.accounts.length} accounts`);
+                    updateLastUpdated();
+                    renderAll();
+                },
+                error: function(error) {
+                    showToast('Error parsing CSV: ' + error.message);
+                }
+            });
+        }
+
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
+        }
+
+        function normalizeRisk(risk) {
+            if (!risk) return 'Medium';
+            const r = risk.toLowerCase();
+            if (r.includes('high') || r === '3' || r === 'red') return 'High';
+            if (r.includes('low') || r === '1' || r === 'green') return 'Low';
+            return 'Medium';
+        }
+
+        function normalizeTier(tier) {
+            if (!tier) return 'SMB';
+            const t = tier.toLowerCase();
+            if (t.includes('enterprise') || t.includes('ent')) return 'Enterprise';
+            if (t.includes('mid') || t.includes('mm')) return 'Mid-Market';
+            if (t.includes('partner')) return 'Partner';
+            return 'SMB';
+        }
+
+        function parseNumber(value) {
+            if (value === undefined || value === null || value === '') return null;
+            const num = parseFloat(value);
+            return isNaN(num) ? null : num;
+        }
+
+        function normalizeUsageTrend(trend) {
+            if (!trend) return 'flat';
+            const value = trend.toString().toLowerCase();
+            if (value.includes('down') || value.includes('declin') || value.includes('drop') || value.includes('-')) return 'down';
+            if (value.includes('up') || value.includes('grow') || value.includes('increase') || value.includes('+')) return 'up';
+            return 'flat';
+        }
+
+        function getAdoptionSignal(account) {
+            if (!account) return 'Unknown';
+            const score = typeof account.usageScore === 'number' ? account.usageScore : null;
+            const trend = account.usageTrend || 'flat';
+            const escalations = account.escalations || 0;
+
+            if ((score !== null && score < 45) || trend === 'down' || escalations > 1) {
+                return 'Declining';
+            }
+            if ((score !== null && score >= 70) && trend === 'up') {
+                return 'Growing';
+            }
+            return 'Stable';
+        }
+
+        function isUsageDeclining(account) {
+            return getAdoptionSignal(account) === 'Declining';
+        }
+
+        function getAdoptionBadgeClass(signal) {
+            switch (signal) {
+                case 'Declining':
+                    return 'risk-high';
+                case 'Growing':
+                    return 'risk-low';
+                default:
+                    return 'risk-medium';
+            }
+        }
+
+        function calculateAdoptionInsights() {
+            const accounts = state.accounts || [];
+            const declining = accounts.filter(isUsageDeclining);
+            const declineARR = declining.reduce((sum, account) => sum + account.arr, 0);
+            const usageScores = accounts
+                .map(account => typeof account.usageScore === 'number' ? account.usageScore : null)
+                .filter(score => score !== null);
+            const avgScore = usageScores.length > 0 ? usageScores.reduce((sum, score) => sum + score, 0) / usageScores.length : null;
+            const escalations = accounts.reduce((sum, account) => sum + (account.escalations || 0), 0);
+            const watchlist = declining
+                .sort((a, b) => b.arr - a.arr)
+                .slice(0, 3);
+
+            return {
+                decliningCount: declining.length,
+                declineARR,
+                avgScore,
+                escalations,
+                watchlist
+            };
+        }
+
+        function getInterventionDueState(intervention) {
+            if (!intervention || !intervention.dueDate) return null;
+            const due = new Date(intervention.dueDate);
+            const today = new Date();
+            due.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0);
+            const diff = due.getTime() - today.getTime();
+            if (diff < 0) return 'overdue';
+            if (diff <= 3 * 24 * 60 * 60 * 1000) return 'soon';
+            return 'scheduled';
+        }
+
+        // ============================================
+        // DEMO DATA
+        // ============================================
+        function loadDemoData() {
+            const companies = [
+                'Acme Corp', 'TechFlow Inc', 'DataSync Solutions', 'CloudNine Systems', 'Pinnacle Partners',
+                'Quantum Dynamics', 'Nexus Financial', 'Apex Industries', 'Stellar Manufacturing', 'Horizon Health',
+                'Velocity Ventures', 'Precision Analytics', 'Summit Strategies', 'Nova Networks', 'Catalyst Corp',
+                'Fusion Finance', 'Elevate Education', 'Prism Technologies', 'Zenith Consulting', 'Meridian Media',
+                'Vertex Solutions', 'Atlas Automation', 'Cascade Capital', 'Dynamo Digital', 'Eclipse Energy',
+                'Frontier Financial', 'Genesis Group', 'Helix Healthcare', 'Ignite Innovations', 'Jupiter Industries',
+                'Kinetic Systems', 'Lighthouse Labs', 'Mosaic Manufacturing', 'Nordic Networks', 'Omega Operations',
+                'Paradigm Partners', 'Quantum Quest', 'Radiant Resources', 'Synergy Solutions', 'Titan Tech',
+                'Unity Unlimited', 'Vanguard Ventures', 'Wavelength Wireless', 'Xenon Xperience', 'Yield Yields',
+                'Zephyr Zone', 'Alpine Analytics', 'Beacon Business', 'Cobalt Consulting', 'Delta Dynamics',
+                'Echo Enterprises', 'Flux Finance', 'Gravity Global', 'Harbor Holdings', 'Ionic Industries',
+                'Jade Journeys', 'Keystone Capital', 'Lunar Logic', 'Matrix Methods', 'Nimbus Networks',
+                'Orion Operations', 'Polar Partners', 'Quartz Quality', 'Ridge Resources', 'Sage Systems'
+            ];
+
+            const tiers = ['Enterprise', 'Enterprise', 'Mid-Market', 'Mid-Market', 'Mid-Market', 'SMB', 'SMB', 'SMB', 'Partner'];
+            const risks = ['High', 'High', 'Medium', 'Medium', 'Medium', 'Medium', 'Low', 'Low', 'Low'];
+            const owners = ['Sarah Chen', 'Mike Rodriguez', 'Emily Watson', 'David Kim', 'Lisa Thompson'];
+            const healthScores = ['Healthy', 'Healthy', 'At Risk', 'At Risk', 'Critical', 'Unknown'];
+
+            const riskNotes = {
+                'High': [
+                    'Executive sponsor left the company',
+                    'Acquisition announced - uncertain future',
+                    'Low adoption across all departments',
+                    'Budget cuts affecting renewal',
+                    'Competitor evaluation in progress',
+                    'Key users have churned',
+                    'Multiple support escalations'
+                ],
+                'Medium': [
+                    'New stakeholders need onboarding',
+                    'Usage declined last quarter',
+                    'Requested pricing review',
+                    'Team restructuring in progress',
+                    'Some feature requests unmet',
+                    'Champion promoted to different role'
+                ],
+                'Low': [
+                    'Strong executive sponsorship',
+                    'High adoption and engagement',
+                    'Recently expanded contract',
+                    'Positive QBR feedback',
+                    'Multiple departments using platform',
+                    ''
+                ]
+            };
+
+            const today = new Date();
+
+            state.accounts = companies.slice(0, 65).map((name, index) => {
+                const tier = tiers[Math.floor(Math.random() * tiers.length)];
+                const risk = risks[Math.floor(Math.random() * risks.length)];
+
+                // ARR based on tier
+                let arr;
+                if (tier === 'Enterprise') arr = 80000 + Math.floor(Math.random() * 420000);
+                else if (tier === 'Mid-Market') arr = 30000 + Math.floor(Math.random() * 70000);
+                else if (tier === 'Partner') arr = 20000 + Math.floor(Math.random() * 80000);
+                else arr = 10000 + Math.floor(Math.random() * 25000);
+
+                // Renewal date in next 180 days
+                const daysUntilRenewal = Math.floor(Math.random() * 180) + 1;
+                const renewalDate = new Date(today);
+                renewalDate.setDate(renewalDate.getDate() + daysUntilRenewal);
+
+                // Status based on risk
+                let status;
+                if (risk === 'High') status = Math.random() > 0.3 ? 'In Progress' : 'Closed Lost';
+                else if (risk === 'Medium') status = Math.random() > 0.5 ? 'In Progress' : 'In Progress';
+                else status = Math.random() > 0.3 ? 'Closed Won' : 'In Progress';
+
+                const notes = riskNotes[risk];
+                const usageTrend = risk === 'High'
+                    ? 'down'
+                    : risk === 'Medium'
+                        ? (Math.random() > 0.4 ? 'flat' : 'down')
+                        : (Math.random() > 0.3 ? 'up' : 'flat');
+                const usageScore = Math.max(25, Math.min(95, Math.round((tier === 'Enterprise' ? 75 : 60) + (usageTrend === 'down' ? -15 : usageTrend === 'up' ? 10 : 0) + (Math.random() * 15 - 7))));
+                const npsScore = Math.round((Math.random() * 70) - 20 + (usageTrend === 'up' ? 10 : usageTrend === 'down' ? -10 : 0));
+                const escalations = Math.max(0, Math.round(Math.random() * (risk === 'High' ? 3 : 1)));
+                const lastTouch = new Date(today);
+                lastTouch.setDate(lastTouch.getDate() - Math.floor(Math.random() * 21));
+
+                const sampleOwner = owners[Math.floor(Math.random() * owners.length)];
+                const interventions = Math.random() > 0.65 ? [
+                    {
+                        text: 'Schedule executive business review',
+                        owner: sampleOwner,
+                        dueDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7).toISOString().split('T')[0],
+                        done: false,
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        text: 'Share adoption playbook',
+                        owner: sampleOwner,
+                        dueDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3).toISOString().split('T')[0],
+                        done: Math.random() > 0.5,
+                        createdAt: new Date().toISOString()
+                    }
+                ] : [];
+
+                return {
+                    id: index + 1,
+                    name: name,
+                    arr: arr,
+                    renewalDate: renewalDate.toISOString().split('T')[0],
+                    health: healthScores[Math.floor(Math.random() * healthScores.length)],
+                    churnRisk: risk,
+                    churnRiskNotes: notes[Math.floor(Math.random() * notes.length)],
+                    owner: sampleOwner,
+                    tier: tier,
+                    status: status,
+                    interventions: interventions,
+                    meetingNotes: '',
+                    usageScore: usageScore,
+                    usageTrend: usageTrend,
+                    nps: npsScore,
+                    escalations: escalations,
+                    lastTouch: lastTouch.toISOString().split('T')[0]
+                };
+            });
+
+            state.lastUpdated = new Date().toISOString();
+            saveState();
+            showToast('Loaded 65 demo accounts');
+            updateLastUpdated();
+            renderAll();
+        }
+
+        // ============================================
+        // GRR CALCULATIONS
+        // ============================================
+        function calculateGRR() {
+            if (state.accounts.length === 0) return { current: 0, potential: 0, atRisk: 0 };
+
+            let totalARR = 0;
+            let expectedRenewedARR = 0;
+            let potentialRenewedARR = 0;
+            let atRiskARR = 0;
+            const growthMultiplier = getGrowthMultiplier();
+
+            state.accounts.forEach(account => {
+                totalARR += account.arr;
+                const statusWeight = getStatusWeight(account.status);
+                const riskWeight = getRiskWeight(account.churnRisk);
+                const baseWeight = (statusWeight !== undefined ? statusWeight : riskWeight) ?? 0.5;
+                const adjustedWeight = baseWeight * growthMultiplier;
+                expectedRenewedARR += account.arr * adjustedWeight;
+
+                // For potential, assume "In Progress" accounts become "Closed Won"
+                const rawPotentialWeight = account.status === 'In Progress' ? 1.0 : baseWeight;
+                const potentialWeight = rawPotentialWeight * growthMultiplier;
+                potentialRenewedARR += account.arr * potentialWeight;
+
+                if (account.status === 'In Progress' || account.status === 'Closed Lost' || account.churnRisk === 'High') {
+                    atRiskARR += account.arr;
+                }
+            });
+
+            return {
+                current: totalARR > 0 ? (expectedRenewedARR / totalARR * 100) : 0,
+                potential: totalARR > 0 ? (potentialRenewedARR / totalARR * 100) : 0,
+                atRisk: atRiskARR,
+                total: totalARR
+            };
+        }
+
+        function getAccountGRRImpact(account) {
+            const totalARR = state.accounts.reduce((sum, a) => sum + a.arr, 0);
+            if (totalARR === 0) return 0;
+            return (account.arr / totalARR * 100).toFixed(2);
+        }
+
+        // ============================================
+        // VIEW NAVIGATION
+        // ============================================
+        function showView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+
+            // Show selected view
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+            // Update sidebar
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.view === viewName) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Update header
+            const titles = {
+                dashboard: { title: 'Dashboard', subtitle: 'Overview of your renewal portfolio' },
+                simulator: { title: 'GRR Simulator', subtitle: 'Model different renewal scenarios' },
+                accounts: { title: 'All Accounts', subtitle: 'View and manage your account portfolio' },
+                calendar: { title: 'Renewal Calendar', subtitle: 'Track renewals by time period and status' },
+                meeting: { title: '1:1 Meeting Mode', subtitle: 'Focus view for leadership discussions' }
+            };
+
+            document.getElementById('page-title').textContent = titles[viewName].title;
+            document.getElementById('page-subtitle').textContent = titles[viewName].subtitle;
+
+            // Re-render view-specific content when switching views
+            if (viewName === 'calendar' && state.accounts.length > 0) {
+                renderCalendar();
+            }
+        }
+
+        // ============================================
+        // RENDERING
+        // ============================================
+        function renderAll() {
+            const hasData = state.accounts.length > 0;
+
+            // Toggle empty states
+            document.getElementById('empty-state').classList.toggle('hidden', hasData);
+            document.getElementById('dashboard-content').classList.toggle('hidden', !hasData);
+            document.getElementById('simulator-empty').classList.toggle('hidden', hasData);
+            document.getElementById('simulator-content').classList.toggle('hidden', !hasData);
+            document.getElementById('accounts-empty').classList.toggle('hidden', hasData);
+            document.getElementById('accounts-content').classList.toggle('hidden', !hasData);
+            document.getElementById('calendar-empty').classList.toggle('hidden', hasData);
+            document.getElementById('calendar-content').classList.toggle('hidden', !hasData);
+            document.getElementById('meeting-empty').classList.toggle('hidden', hasData);
+            document.getElementById('meeting-content').classList.toggle('hidden', !hasData);
+
+            if (hasData) {
+                renderDashboard();
+                renderSimulator();
+                renderAccounts();
+                renderCalendar();
+                renderMeetingMode();
+            }
+        }
+
+        function renderDashboard() {
+            const grr = calculateGRR();
+            const accounts = state.accounts;
+            const scenario = getScenario();
+
+            // Stats
+            document.getElementById('stat-grr').textContent = `${grr.current.toFixed(1)}%`;
+            const grrDiff = grr.current - 90;
+            document.getElementById('stat-grr-change').textContent = `vs. target: 90% (${grrDiff >= 0 ? '+' : ''}${grrDiff.toFixed(1)}%)`;
+            document.getElementById('stat-grr-change').className = `text-sm ${grrDiff >= 0 ? 'text-green-600' : 'text-red-600'}`;
+            const scenarioEl = document.getElementById('stat-scenario');
+            if (scenarioEl) scenarioEl.textContent = scenario.label;
+
+            document.getElementById('stat-arr').textContent = formatCurrency(grr.total);
+            document.getElementById('stat-accounts').textContent = `${accounts.length} accounts`;
+
+            document.getElementById('stat-at-risk').textContent = formatCurrency(grr.atRisk);
+            document.getElementById('stat-at-risk-pct').textContent = `${(grr.atRisk / grr.total * 100).toFixed(1)}% of total`;
+
+            // Renewals this quarter
+            const today = new Date();
+            const quarterEnd = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3 + 3, 0);
+            const renewalsThisQtr = accounts.filter(a => {
+                const renewalDate = new Date(a.renewalDate);
+                return renewalDate >= today && renewalDate <= quarterEnd;
+            });
+            const qtrARR = renewalsThisQtr.reduce((sum, a) => sum + a.arr, 0);
+            document.getElementById('stat-renewals-qtr').textContent = renewalsThisQtr.length;
+            document.getElementById('stat-renewals-arr').textContent = formatCurrency(qtrARR) + ' ARR';
+
+            // Charts
+            renderRiskChart();
+            renderTimelineChart();
+            renderAdoptionInsights();
+
+            // Priority accounts table
+            renderPriorityTable();
+        }
+
+        function renderRiskChart() {
+            const ctx = document.getElementById('chart-risk').getContext('2d');
+
+            // Destroy existing chart if exists
+            if (window.riskChart) window.riskChart.destroy();
+
+            const riskCounts = {
+                'High': state.accounts.filter(a => a.churnRisk === 'High').length,
+                'Medium': state.accounts.filter(a => a.churnRisk === 'Medium').length,
+                'Low': state.accounts.filter(a => a.churnRisk === 'Low').length
+            };
+
+            window.riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+                    datasets: [{
+                        data: [riskCounts['High'], riskCounts['Medium'], riskCounts['Low']],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'],
+                        borderColor: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,0.8)'],
+                        borderWidth: 3,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    animation: {
+                        animateRotate: true,
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 16,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 12, weight: 500 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            boxPadding: 6
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTimelineChart() {
+            const ctx = document.getElementById('chart-timeline').getContext('2d');
+
+            if (window.timelineChart) window.timelineChart.destroy();
+
+            const today = new Date();
+            const buckets = [
+                { label: '0-30 days', min: 0, max: 30 },
+                { label: '31-60 days', min: 31, max: 60 },
+                { label: '61-90 days', min: 61, max: 90 }
+            ];
+
+            const data = buckets.map(bucket => {
+                return state.accounts.filter(a => {
+                    const days = Math.ceil((new Date(a.renewalDate) - today) / (1000 * 60 * 60 * 24));
+                    return days >= bucket.min && days <= bucket.max;
+                }).reduce((sum, a) => sum + a.arr, 0);
+            });
+
+            // Create gradient for bars
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, '#C34F2E');
+            gradient.addColorStop(1, '#d4735a');
+
+            window.timelineChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: buckets.map(b => b.label),
+                    datasets: [{
+                        label: 'ARR Up for Renewal',
+                        data: data,
+                        backgroundColor: gradient,
+                        borderRadius: 10,
+                        borderSkipped: false,
+                        barThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: 'rgba(0,0,0,0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                callback: value => formatCurrency(value, true),
+                                font: { size: 11 }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: { size: 11 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAdoptionInsights() {
+            const metrics = calculateAdoptionInsights();
+            const declineCountEl = document.getElementById('adoption-decline-count');
+            const declineArrEl = document.getElementById('adoption-decline-arr');
+            const avgScoreEl = document.getElementById('adoption-avg-score');
+            const avgTextEl = document.getElementById('adoption-avg-text');
+            const escalationsCountEl = document.getElementById('adoption-escalations-count');
+            const escalationsTextEl = document.getElementById('adoption-escalations-text');
+            const watchlistEl = document.getElementById('adoption-watchlist');
+
+            if (declineCountEl) declineCountEl.textContent = metrics.decliningCount;
+            if (declineArrEl) declineArrEl.textContent = `${formatCurrency(metrics.declineARR)} ARR at stake`;
+            if (avgScoreEl) avgScoreEl.textContent = metrics.avgScore !== null ? `${metrics.avgScore.toFixed(0)}` : '--';
+            if (avgTextEl) avgTextEl.textContent = metrics.avgScore !== null ? `Based on ${state.accounts.filter(a => typeof a.usageScore === 'number').length} accounts` : 'No usage data';
+            if (escalationsCountEl) escalationsCountEl.textContent = metrics.escalations;
+            if (escalationsTextEl) escalationsTextEl.textContent = metrics.escalations > 0 ? 'Active escalations logged' : 'No active escalations';
+
+            if (watchlistEl) {
+                if (metrics.watchlist.length === 0) {
+                    watchlistEl.innerHTML = '<p class="p-6 text-sm text-gray-500">No critical adoption risks detected.</p>';
+                } else {
+                    watchlistEl.innerHTML = metrics.watchlist.map(account => {
+                        const adoptionSignal = getAdoptionSignal(account);
+                        const badgeClass = getAdoptionBadgeClass(adoptionSignal);
+                        return `
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-gray-800">${account.name}</p>
+                                    <p class="text-xs text-gray-500">${account.owner} • ${account.tier}</p>
+                                    <p class="text-xs text-gray-500 mt-1">Usage ${account.usageScore ?? '--'} • Trend ${account.usageTrend || 'flat'} • Esc. ${account.escalations || 0}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-semibold text-gray-800">${formatCurrency(account.arr)}</p>
+                                    <span class="status-badge ${badgeClass}">${adoptionSignal}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        function renderPriorityTable() {
+            const tbody = document.getElementById('priority-accounts-table');
+
+            // Sort by risk (high first) then by ARR (high first)
+            const priority = [...state.accounts]
+                .filter(a => a.churnRisk === 'High' || a.status === 'In Progress' || a.status === 'Closed Lost')
+                .sort((a, b) => {
+                    const riskOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+                    if (riskOrder[a.churnRisk] !== riskOrder[b.churnRisk]) {
+                        return riskOrder[a.churnRisk] - riskOrder[b.churnRisk];
+                    }
+                    return b.arr - a.arr;
+                })
+                .slice(0, 5);
+
+            tbody.innerHTML = priority.map(account => `
+                <tr class="table-row">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
+                                ${account.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-800">${account.name}</p>
+                                <p class="text-xs text-gray-500">${account.tier} • ${account.owner}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium">${formatCurrency(account.arr)}</td>
+                    <td class="px-6 py-4 text-gray-600">${formatDate(account.renewalDate)}</td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge risk-${account.churnRisk.toLowerCase()}">${account.churnRisk}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge status-${account.status.toLowerCase().replace(' ', '-')}">${account.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="showAccountDetail(${account.id})" class="text-vena-tuscany hover:underline text-sm font-medium">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderSimulator() {
+            const grr = calculateGRR();
+            const scenario = getScenario();
+            const selectedScenario = state.simulation?.scenario || 'base';
+
+            // Update header stats
+            document.getElementById('sim-current-grr').textContent = `${grr.current.toFixed(1)}%`;
+            document.getElementById('sim-potential-grr').textContent = `${grr.potential.toFixed(1)}%`;
+            document.getElementById('sim-grr-improvement').textContent = `+${(grr.potential - grr.current).toFixed(1)}% improvement`;
+
+            const workingAccounts = state.accounts.filter(a => a.status === 'In Progress');
+            const saveableARR = workingAccounts.reduce((sum, a) => sum + a.arr, 0);
+            document.getElementById('sim-arr-saveable').textContent = formatCurrency(saveableARR);
+
+            const scenarioDescription = document.getElementById('scenario-description');
+            if (scenarioDescription) scenarioDescription.textContent = scenario.description;
+            document.querySelectorAll('.scenario-pill').forEach(button => {
+                button.classList.toggle('active', button.dataset.scenario === selectedScenario);
+            });
+            ['High', 'Medium', 'Low'].forEach(level => {
+                const slider = document.getElementById(`risk-slider-${level}`);
+                const valueEl = document.getElementById(`risk-value-${level}`);
+                const value = Math.round(((state.simulation?.riskOverrides?.[level] ?? scenario.risk?.[level] ?? BASE_RISK_WEIGHTS[level] ?? 0) * 100));
+                if (slider) slider.value = value;
+                if (valueEl) valueEl.textContent = `${value}%`;
+            });
+            const expansionInput = document.getElementById('sim-expansion-rate');
+            const downsellInput = document.getElementById('sim-downsell-rate');
+            if (expansionInput) expansionInput.value = Math.round((state.simulation?.expansionRate ?? scenario.expansionRate ?? 0) * 100);
+            if (downsellInput) downsellInput.value = Math.round((state.simulation?.downsellRate ?? scenario.downsellRate ?? 0) * 100);
+
+            // Render table
+            const filterRisk = document.getElementById('sim-filter-risk').value;
+            const sort = document.getElementById('sim-sort').value;
+
+            let accounts = [...state.accounts];
+
+            // Filter
+            if (filterRisk !== 'all') {
+                accounts = accounts.filter(a => a.churnRisk === filterRisk);
+            }
+
+            // Sort
+            accounts.sort((a, b) => {
+                switch (sort) {
+                    case 'arr-desc': return b.arr - a.arr;
+                    case 'arr-asc': return a.arr - b.arr;
+                    case 'renewal-asc': return new Date(a.renewalDate) - new Date(b.renewalDate);
+                    case 'risk-desc':
+                        const riskOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+                        return riskOrder[a.churnRisk] - riskOrder[b.churnRisk];
+                    default: return 0;
+                }
+            });
+
+            const tbody = document.getElementById('simulator-table');
+            tbody.innerHTML = accounts.map(account => `
+                <tr class="table-row">
+                    <td class="px-6 py-4">
+                        <div>
+                            <p class="font-medium text-gray-800">${account.name}</p>
+                            <p class="text-xs text-gray-500">${account.tier}</p>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium">${formatCurrency(account.arr)}</td>
+                    <td class="px-6 py-4 text-gray-600">${formatDate(account.renewalDate)}</td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge risk-${account.churnRisk.toLowerCase()}">${account.churnRisk}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <select onchange="updateAccountStatus(${account.id}, this.value)"
+                            class="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20">
+                            <option value="Closed Lost" ${account.status === 'Closed Lost' ? 'selected' : ''}>Closed Lost</option>
+                            <option value="In Progress" ${account.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Closed Won" ${account.status === 'Closed Won' ? 'selected' : ''}>Closed Won</option>
+                        </select>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm font-medium text-vena-green">+${getAccountGRRImpact(account)}%</span>
+                        <span class="text-xs text-gray-500 block">if saved</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAccounts() {
+            const search = document.getElementById('search-accounts').value.toLowerCase();
+            const filterTier = document.getElementById('filter-tier').value;
+            const filterRisk = document.getElementById('filter-risk').value;
+            const filterStatus = document.getElementById('filter-status').value;
+            const sort = document.getElementById('sort-accounts').value;
+
+            let accounts = [...state.accounts];
+
+            // Filters
+            if (search) {
+                accounts = accounts.filter(a =>
+                    a.name.toLowerCase().includes(search) ||
+                    a.owner.toLowerCase().includes(search)
+                );
+            }
+            if (filterTier !== 'all') {
+                accounts = accounts.filter(a => a.tier === filterTier);
+            }
+            if (filterRisk !== 'all') {
+                accounts = accounts.filter(a => a.churnRisk === filterRisk);
+            }
+            if (filterStatus !== 'all') {
+                accounts = accounts.filter(a => a.status === filterStatus);
+            }
+
+            // Sort
+            accounts.sort((a, b) => {
+                switch (sort) {
+                    case 'renewal-asc': return new Date(a.renewalDate) - new Date(b.renewalDate);
+                    case 'renewal-desc': return new Date(b.renewalDate) - new Date(a.renewalDate);
+                    case 'arr-desc': return b.arr - a.arr;
+                    case 'arr-asc': return a.arr - b.arr;
+                    case 'name-asc': return a.name.localeCompare(b.name);
+                    case 'risk-desc':
+                        const riskOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+                        return riskOrder[a.churnRisk] - riskOrder[b.churnRisk];
+                    default: return 0;
+                }
+            });
+
+            const tbody = document.getElementById('accounts-table');
+            tbody.innerHTML = accounts.map(account => `
+                <tr class="table-row">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
+                                ${account.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-800">${account.name}</p>
+                                <p class="text-xs text-gray-500">${account.owner}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium">${formatCurrency(account.arr)}</td>
+                    <td class="px-6 py-4 text-gray-600">${formatDate(account.renewalDate)}</td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge tier-${account.tier.toLowerCase().replace('-', '-')}">${account.tier}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge risk-${account.churnRisk.toLowerCase()}">${account.churnRisk}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge status-${account.status.toLowerCase().replace(' ', '-')}">${account.status}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="showAccountDetail(${account.id})" class="text-vena-tuscany hover:underline text-sm font-medium">
+                            View
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderMeetingMode() {
+            // Get accounts that need discussion (at risk or working)
+            const meetingAccounts = state.accounts
+                .filter(a => a.status === 'In Progress' || a.status === 'Closed Lost' || a.churnRisk === 'High')
+                .sort((a, b) => {
+                    // Priority score: ARR * risk weight (higher = more priority)
+                    const riskMultiplier = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                    const scoreA = a.arr * riskMultiplier[a.churnRisk];
+                    const scoreB = b.arr * riskMultiplier[b.churnRisk];
+                    return scoreB - scoreA;
+                });
+
+            const totalARR = meetingAccounts.reduce((sum, a) => sum + a.arr, 0);
+            const openInterventions = [];
+            meetingAccounts.forEach(account => {
+                (account.interventions || []).forEach(intervention => {
+                    if (!intervention.done) {
+                        openInterventions.push({ account, ...intervention });
+                    }
+                });
+            });
+            const actionItems = openInterventions.length;
+
+            document.getElementById('meeting-count').textContent = meetingAccounts.length;
+            document.getElementById('meeting-arr').textContent = formatCurrency(totalARR);
+            document.getElementById('meeting-actions').textContent = actionItems;
+
+            const overdueCount = openInterventions.filter(item => getInterventionDueState(item) === 'overdue').length;
+            const savePlanHealth = document.getElementById('save-plan-health');
+            if (savePlanHealth) {
+                if (actionItems === 0) {
+                    savePlanHealth.textContent = 'All caught up';
+                    savePlanHealth.className = 'text-sm font-medium text-vena-green';
+                } else if (overdueCount > 0) {
+                    savePlanHealth.textContent = `${overdueCount} overdue`;
+                    savePlanHealth.className = 'text-sm font-medium text-red-600';
+                } else {
+                    savePlanHealth.textContent = 'On track';
+                    savePlanHealth.className = 'text-sm font-medium text-amber-600';
+                }
+            }
+
+            const savePlanList = document.getElementById('save-plan-list');
+            if (savePlanList) {
+                if (openInterventions.length === 0) {
+                    savePlanList.innerHTML = '<p class="text-sm text-gray-500">No open save plans for the prioritized accounts.</p>';
+                } else {
+                    const tasks = [...openInterventions].sort((a, b) => {
+                        const aDate = a.dueDate ? new Date(a.dueDate) : new Date('9999-12-31');
+                        const bDate = b.dueDate ? new Date(b.dueDate) : new Date('9999-12-31');
+                        return aDate - bDate;
+                    }).slice(0, 5);
+                    savePlanList.innerHTML = tasks.map(task => {
+                        const dueState = getInterventionDueState(task);
+                        const dueLabel = task.dueDate ? formatDate(task.dueDate) : 'No due date';
+                        return `
+                            <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">${task.text}</p>
+                                    <p class="text-xs text-gray-500">${task.account.name} • ${task.owner || task.account.owner || 'Unassigned'} • ${dueLabel}</p>
+                                </div>
+                                ${dueState ? `<span class="text-xs font-semibold ${dueState === 'overdue' ? 'text-red-600' : 'text-amber-600'}">${dueState === 'overdue' ? 'Overdue' : 'Due soon'}</span>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            const container = document.getElementById('meeting-accounts');
+            container.innerHTML = meetingAccounts.map((account, index) => {
+                const adoptionSignal = getAdoptionSignal(account);
+                const adoptionClass = getAdoptionBadgeClass(adoptionSignal);
+                return `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-full bg-vena-tuscany/10 flex items-center justify-center text-lg font-bold text-vena-tuscany">
+                                    ${index + 1}
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">${account.name}</h4>
+                                    <p class="text-sm text-gray-500">${account.tier} • ${account.owner}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-xl text-gray-800">${formatCurrency(account.arr)}</p>
+                                <p class="text-sm text-gray-500">Renewal: ${formatDate(account.renewalDate)}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="status-badge risk-${account.churnRisk.toLowerCase()}">${account.churnRisk} Risk</span>
+                            <span class="status-badge status-${account.status.toLowerCase().replace(' ', '-')}">${account.status}</span>
+                            <span class="text-sm text-gray-500">• GRR Impact: +${getAccountGRRImpact(account)}%</span>
+                        </div>
+
+                        <div class="flex items-center gap-3 text-sm text-gray-600 mb-4">
+                            <span class="font-medium">Adoption:</span>
+                            <span class="status-badge ${adoptionClass}">${adoptionSignal}</span>
+                            <span>${account.usageScore ?? '--'} score • ${account.usageTrend || 'flat'} trend</span>
+                        </div>
+
+                        ${account.churnRiskNotes ? `
+                            <div class="bg-gray-50 rounded-lg p-3 mb-4">
+                                <p class="text-sm text-gray-500 font-medium mb-1">Risk Notes</p>
+                                <p class="text-sm text-gray-700">${account.churnRiskNotes}</p>
+                            </div>
+                        ` : ''}
+
+                        <div class="border-t border-gray-100 pt-4 mt-4">
+                            <p class="text-sm text-gray-500 font-medium mb-2">Meeting Notes</p>
+                            <textarea
+                                onchange="updateMeetingNotes(${account.id}, this.value)"
+                                placeholder="Add notes from your 1:1 discussion..."
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20 resize-none"
+                                rows="2"
+                            >${account.meetingNotes || ''}</textarea>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-4">
+                            <button onclick="showAccountDetail(${account.id})" class="text-sm text-vena-tuscany hover:underline font-medium">
+                                View Full Details
+                            </button>
+                            <span class="text-gray-300">•</span>
+                            <button onclick="updateAccountStatus(${account.id}, 'In Progress')" class="text-sm text-blue-600 hover:underline font-medium">
+                                Mark In Progress
+                            </button>
+                            <span class="text-gray-300">•</span>
+                            <button onclick="updateAccountStatus(${account.id}, 'Closed Won')" class="text-sm text-green-600 hover:underline font-medium">
+                                Mark Closed Won
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+
+            renderActivityFeed();
+        }
+
+        function renderActivityFeed() {
+            const container = document.getElementById('activity-feed');
+            if (!container) return;
+            if (!state.auditLog || state.auditLog.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">No recent collaboration yet.</p>';
+                return;
+            }
+
+            container.innerHTML = state.auditLog.slice(0, 8).map(entry => `
+                <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm font-semibold text-gray-600">
+                        ${entry.accountName ? entry.accountName.charAt(0) : '?'}
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">${entry.accountName || 'Account'}</p>
+                        <p class="text-xs text-gray-500">${formatTimestamp(entry.timestamp)} • ${entry.action}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // RENEWAL CALENDAR
+        // ============================================
+        let calendarPeriod = 'quarter';
+        let calendarStatus = 'all';
+
+        function setCalendarPeriod(period) {
+            calendarPeriod = period;
+
+            // Update button styles - use glass-btn active class
+            document.querySelectorAll('.calendar-period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(`period-${period}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+
+            renderCalendar();
+        }
+
+        function setCalendarStatus(status) {
+            calendarStatus = status;
+
+            // Update button styles - use glass-btn active class
+            document.querySelectorAll('.calendar-status-btn').forEach(btn => {
+                btn.classList.remove('active', 'glass-btn-green');
+            });
+
+            const statusMap = {
+                'all': 'status-all',
+                'Closed Won': 'status-won',
+                'In Progress': 'status-progress',
+                'Closed Lost': 'status-lost'
+            };
+
+            const activeBtn = document.getElementById(statusMap[status]);
+            if (activeBtn) {
+                if (status === 'all') {
+                    activeBtn.classList.add('active', 'glass-btn-green');
+                } else {
+                    activeBtn.classList.add('active');
+                }
+            }
+
+            renderCalendar();
+        }
+
+        function getCalendarDateRange() {
+            const today = new Date();
+            let startDate = new Date(today);
+            let endDate = new Date(today);
+
+            switch (calendarPeriod) {
+                case 'week':
+                    // Start of current week (Sunday)
+                    startDate.setDate(today.getDate() - today.getDay());
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case 'month':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+                case 'quarter':
+                    const quarterMonth = Math.floor(today.getMonth() / 3) * 3;
+                    startDate = new Date(today.getFullYear(), quarterMonth, 1);
+                    endDate = new Date(today.getFullYear(), quarterMonth + 3, 0);
+                    break;
+                case 'year':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = new Date(today.getFullYear(), 11, 31);
+                    break;
+            }
+
+            return { startDate, endDate };
+        }
+
+        function renderCalendar() {
+            // Ensure content is visible
+            document.getElementById('calendar-empty').classList.add('hidden');
+            document.getElementById('calendar-content').classList.remove('hidden');
+
+            const { startDate, endDate } = getCalendarDateRange();
+
+            // Filter accounts by date range and status
+            let filteredAccounts = state.accounts.filter(account => {
+                const renewalDate = new Date(account.renewalDate);
+                const inRange = renewalDate >= startDate && renewalDate <= endDate;
+                const matchesStatus = calendarStatus === 'all' || account.status === calendarStatus;
+                return inRange && matchesStatus;
+            });
+
+            // Sort by renewal date
+            filteredAccounts.sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate));
+
+            // Calculate stats for the filtered period (all statuses, for the summary)
+            const periodAccounts = state.accounts.filter(account => {
+                const renewalDate = new Date(account.renewalDate);
+                return renewalDate >= startDate && renewalDate <= endDate;
+            });
+
+            const totalARR = periodAccounts.reduce((sum, a) => sum + a.arr, 0);
+            const wonAccounts = periodAccounts.filter(a => a.status === 'Closed Won');
+            const progressAccounts = periodAccounts.filter(a => a.status === 'In Progress');
+            const lostAccounts = periodAccounts.filter(a => a.status === 'Closed Lost');
+
+            // Update summary stats
+            document.getElementById('cal-total-arr').textContent = formatCurrency(totalARR);
+            document.getElementById('cal-total-count').textContent = `${periodAccounts.length} renewals`;
+
+            document.getElementById('cal-won-arr').textContent = formatCurrency(wonAccounts.reduce((sum, a) => sum + a.arr, 0));
+            document.getElementById('cal-won-count').textContent = `${wonAccounts.length} accounts`;
+
+            document.getElementById('cal-progress-arr').textContent = formatCurrency(progressAccounts.reduce((sum, a) => sum + a.arr, 0));
+            document.getElementById('cal-progress-count').textContent = `${progressAccounts.length} accounts`;
+
+            document.getElementById('cal-lost-arr').textContent = formatCurrency(lostAccounts.reduce((sum, a) => sum + a.arr, 0));
+            document.getElementById('cal-lost-count').textContent = `${lostAccounts.length} accounts`;
+
+            // Render timeline
+            const container = document.getElementById('calendar-timeline');
+            const noResults = document.getElementById('calendar-no-results');
+
+            if (filteredAccounts.length === 0) {
+                container.innerHTML = '';
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+
+                // Generate week columns based on the period
+                const weeks = [];
+                const today = new Date();
+                let currentWeekStart = new Date(startDate);
+                currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of week
+
+                while (currentWeekStart <= endDate) {
+                    const weekEnd = new Date(currentWeekStart);
+                    weekEnd.setDate(weekEnd.getDate() + 6);
+                    const isCurrentWeek = today >= currentWeekStart && today <= weekEnd;
+
+                    weeks.push({
+                        start: new Date(currentWeekStart),
+                        end: weekEnd,
+                        label: `${currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+                        isCurrentWeek
+                    });
+
+                    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+                }
+
+                // Build timeline header
+                const headerCells = weeks.map(week =>
+                    `<div class="timeline-header-cell ${week.isCurrentWeek ? 'today' : ''}">${week.label}</div>`
+                ).join('');
+
+                // Build timeline rows
+                const rows = filteredAccounts.map(account => {
+                    const renewalDate = new Date(account.renewalDate);
+                    const statusClass = account.status === 'Closed Won' ? 'status-won' :
+                                       account.status === 'In Progress' ? 'status-progress' : 'status-lost';
+
+                    // Find which week the renewal falls in
+                    let barPosition = null;
+                    weeks.forEach((week, index) => {
+                        if (renewalDate >= week.start && renewalDate <= week.end) {
+                            barPosition = index;
+                        }
+                    });
+
+                    // Create empty cells
+                    const cells = weeks.map((week, index) => {
+                        const isCurrentWeek = week.isCurrentWeek;
+                        let cellContent = '';
+
+                        if (barPosition === index) {
+                            cellContent = `
+                                <div class="timeline-bar ${statusClass}" onclick="showAccountDetail(${account.id})" style="left: 8px; right: 8px;">
+                                    ${formatCurrency(account.arr, true)}
+                                </div>
+                            `;
+                        }
+
+                        return `<div class="timeline-cell ${isCurrentWeek ? 'today' : ''}">${cellContent}</div>`;
+                    }).join('');
+
+                    return `
+                        <div class="timeline-row">
+                            <div class="timeline-account-info">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-vena-green/10 flex items-center justify-center text-sm font-bold text-vena-green flex-shrink-0">
+                                        ${account.name.charAt(0)}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="font-medium text-gray-800 text-sm truncate cursor-pointer hover:text-vena-tuscany" onclick="showAccountDetail(${account.id})">${account.name}</h4>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-gray-500">${formatDate(account.renewalDate)}</span>
+                                            <span class="status-badge text-[0.6rem] risk-${account.churnRisk.toLowerCase()}">${account.churnRisk}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="timeline-track">${cells}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="timeline-header">
+                        <div class="timeline-account-info font-semibold text-gray-700 text-sm">Account</div>
+                        ${headerCells}
+                    </div>
+                    <div class="timeline-body">
+                        ${rows}
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // ACCOUNT DETAIL MODAL
+        // ============================================
+        function showAccountDetail(accountId) {
+            const account = state.accounts.find(a => a.id === accountId);
+            if (!account) return;
+
+            const suggestedActions = getSuggestedActions(account);
+
+            const content = `
+                <div class="p-6 border-b border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-vena-green/10 flex items-center justify-center text-xl font-bold text-vena-green">
+                                ${account.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">${account.name}</h3>
+                                <p class="text-sm text-gray-500">${account.tier} • ${account.owner}</p>
+                            </div>
+                        </div>
+                        <button onclick="hideAccountModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 max-h-[60vh] overflow-y-auto">
+                    <!-- Key Metrics -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">ARR</p>
+                            <p class="text-xl font-bold text-gray-800">${formatCurrency(account.arr)}</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">Renewal Date</p>
+                            <p class="text-xl font-bold text-gray-800">${formatDate(account.renewalDate)}</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">GRR Impact</p>
+                            <p class="text-xl font-bold text-vena-green">+${getAccountGRRImpact(account)}%</p>
+                        </div>
+                    </div>
+
+                    <!-- Adoption Metrics -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">Adoption Signal</p>
+                            <p class="text-xl font-bold text-gray-800">${getAdoptionSignal(account)}</p>
+                            <p class="text-xs text-gray-600 mt-1">Usage ${account.usageScore ?? '--'} • Trend ${account.usageTrend || 'flat'}</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">NPS</p>
+                            <p class="text-xl font-bold text-gray-800">${account.nps ?? 'N/A'}</p>
+                            <p class="text-xs text-gray-600 mt-1">Customer sentiment</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-500">Escalations (30d)</p>
+                            <p class="text-xl font-bold text-gray-800">${account.escalations || 0}</p>
+                            <p class="text-xs text-gray-600 mt-1">${account.lastTouch ? `Last touch ${formatDate(account.lastTouch)}` : 'No touch recorded'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Status and Risk -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Account Status</label>
+                            <select onchange="updateAccountStatus(${account.id}, this.value); showAccountDetail(${account.id})"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20">
+                                <option value="Closed Lost" ${account.status === 'Closed Lost' ? 'selected' : ''}>Closed Lost</option>
+                                <option value="In Progress" ${account.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="Closed Won" ${account.status === 'Closed Won' ? 'selected' : ''}>Closed Won</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Risk Level</label>
+                            <div class="flex items-center gap-2">
+                                <span class="status-badge risk-${account.churnRisk.toLowerCase()}">${account.churnRisk}</span>
+                                <span class="text-sm text-gray-500">Health: ${account.health}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Risk Notes -->
+                    ${account.churnRiskNotes ? `
+                        <div class="mb-6">
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Risk Notes (from Salesforce)</label>
+                            <div class="bg-red-50 border border-red-100 rounded-lg p-4">
+                                <p class="text-sm text-red-800">${account.churnRiskNotes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Suggested Actions -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-gray-700 block mb-2">Suggested Actions</label>
+                        <div class="space-y-2">
+                            ${suggestedActions.map(action => `
+                                <div class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    <p class="text-sm text-blue-800">${action}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Intervention Tracker -->
+                    <div class="mb-6">
+                        <label class="text-sm font-medium text-gray-700 block mb-2">Intervention Tracker</label>
+                        <div id="interventions-list" class="space-y-2 mb-3">
+                            ${(account.interventions || []).map((intervention, idx) => `
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" ${intervention.done ? 'checked' : ''}
+                                            onchange="toggleIntervention(${account.id}, ${idx})"
+                                            class="w-4 h-4 text-vena-green rounded">
+                                        <div>
+                                            <p class="text-sm ${intervention.done ? 'line-through text-gray-400' : 'text-gray-700'}">${intervention.text}</p>
+                                            <p class="text-xs text-gray-500">${intervention.owner || 'Unassigned'}${intervention.dueDate ? ` • Due ${formatDate(intervention.dueDate)}` : ''}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        ${(() => {
+                                            const status = getInterventionDueState(intervention);
+                                            if (!status || intervention.done) return '';
+                                            const label = status === 'overdue' ? 'Overdue' : 'Due soon';
+                                            const color = status === 'overdue' ? 'text-red-600' : 'text-amber-600';
+                                            return `<span class="text-xs font-semibold ${color}">${label}</span>`;
+                                        })()}
+                                        <button onclick="removeIntervention(${account.id}, ${idx})" class="text-gray-400 hover:text-red-500">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="space-y-2">
+                            <input type="text" id="new-intervention-${account.id}" placeholder="Add save plan (e.g., Schedule EBR, Call champion)"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20"
+                                onkeypress="if(event.key === 'Enter') addIntervention(${account.id})">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input type="text" id="new-intervention-owner-${account.id}" placeholder="Owner (optional)"
+                                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20">
+                                <input type="date" id="new-intervention-due-${account.id}"
+                                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20">
+                            </div>
+                            <div class="flex justify-end">
+                                <button onclick="addIntervention(${account.id})" class="bg-vena-green text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-vena-green-light transition">
+                                    Add Save Plan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 block mb-2">1:1 Meeting Notes</label>
+                        <textarea
+                            onchange="updateMeetingNotes(${account.id}, this.value)"
+                            placeholder="Add notes from leadership discussions..."
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vena-tuscany/20 resize-none"
+                            rows="4"
+                        >${account.meetingNotes || ''}</textarea>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('account-modal-content').innerHTML = content;
+            document.getElementById('account-modal').classList.remove('hidden');
+        }
+
+        function hideAccountModal() {
+            document.getElementById('account-modal').classList.add('hidden');
+        }
+
+        function getSuggestedActions(account) {
+            const actions = [];
+            const notes = (account.churnRiskNotes || '').toLowerCase();
+
+            if (notes.includes('executive') || notes.includes('sponsor') || notes.includes('champion')) {
+                actions.push('Schedule intro meeting with new executive stakeholder');
+                actions.push('Identify and nurture new internal champion');
+            }
+            if (notes.includes('acquisition') || notes.includes('merger')) {
+                actions.push('Research acquiring company and their tech stack');
+                actions.push('Connect with integration/transition team');
+            }
+            if (notes.includes('adoption') || notes.includes('usage')) {
+                actions.push('Schedule product training session');
+                actions.push('Share adoption best practices and use cases');
+                actions.push('Set up weekly usage review cadence');
+            }
+            if (notes.includes('budget') || notes.includes('cost') || notes.includes('price')) {
+                actions.push('Prepare ROI analysis and value documentation');
+                actions.push('Explore alternative pricing/packaging options');
+            }
+            if (notes.includes('competitor')) {
+                actions.push('Prepare competitive differentiation deck');
+                actions.push('Schedule deep-dive demo of unique features');
+            }
+
+            // Default actions if none match
+            if (actions.length === 0) {
+                if (account.churnRisk === 'High') {
+                    actions.push('Schedule urgent check-in call with stakeholders');
+                    actions.push('Escalate to leadership for strategic intervention');
+                } else if (account.churnRisk === 'Medium') {
+                    actions.push('Schedule QBR to review value delivered');
+                    actions.push('Send success story relevant to their industry');
+                } else {
+                    actions.push('Proactively share product roadmap updates');
+                    actions.push('Explore expansion opportunities');
+                }
+            }
+
+            return actions.slice(0, 4);
+        }
+
+        // ============================================
+        // DATA UPDATES
+        // ============================================
+        function logAction(account, message) {
+            if (!account) return;
+            state.auditLog.unshift({
+                id: `${account.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                accountId: account.id,
+                accountName: account.name,
+                owner: account.owner,
+                action: message,
+                timestamp: new Date().toISOString(),
+                risk: account.churnRisk
+            });
+            state.auditLog = state.auditLog.slice(0, 40);
+        }
+
+        function markStateDirty() {
+            state.lastUpdated = new Date().toISOString();
+            saveState();
+            updateLastUpdated();
+        }
+
+        function updateAccountStatus(accountId, newStatus) {
+            const account = state.accounts.find(a => a.id === accountId);
+            if (account) {
+                account.status = newStatus;
+                logAction(account, `Status updated to ${newStatus}`);
+                markStateDirty();
+                renderAll();
+            }
+        }
+
+        function updateMeetingNotes(accountId, notes) {
+            const account = state.accounts.find(a => a.id === accountId);
+            if (account) {
+                if (account.meetingNotes !== notes) {
+                    account.meetingNotes = notes;
+                    logAction(account, 'Updated meeting notes');
+                    markStateDirty();
+                    renderMeetingMode();
+                }
+            }
+        }
+
+        function addIntervention(accountId) {
+            const textInput = document.getElementById(`new-intervention-${accountId}`);
+            const ownerInput = document.getElementById(`new-intervention-owner-${accountId}`);
+            const dueInput = document.getElementById(`new-intervention-due-${accountId}`);
+            const text = textInput ? textInput.value.trim() : '';
+            if (!text) return;
+
+            const owner = ownerInput ? ownerInput.value.trim() : '';
+            const dueDate = dueInput ? dueInput.value : '';
+
+            const account = state.accounts.find(a => a.id === accountId);
+            if (account) {
+                if (!account.interventions) account.interventions = [];
+                account.interventions.push({
+                    text,
+                    owner: owner || account.owner || 'Unassigned',
+                    dueDate: dueDate || null,
+                    done: false,
+                    createdAt: new Date().toISOString()
+                });
+                logAction(account, `Added save plan: ${text}`);
+                markStateDirty();
+                if (textInput) textInput.value = '';
+                if (ownerInput) ownerInput.value = '';
+                if (dueInput) dueInput.value = '';
+                showAccountDetail(accountId);
+                renderMeetingMode();
+            }
+        }
+
+        function toggleIntervention(accountId, idx) {
+            const account = state.accounts.find(a => a.id === accountId);
+            if (account && account.interventions[idx]) {
+                account.interventions[idx].done = !account.interventions[idx].done;
+                logAction(account, `Marked "${account.interventions[idx].text}" as ${account.interventions[idx].done ? 'complete' : 'open'}`);
+                markStateDirty();
+                showAccountDetail(accountId);
+                renderMeetingMode();
+            }
+        }
+
+        function removeIntervention(accountId, idx) {
+            const account = state.accounts.find(a => a.id === accountId);
+            if (account) {
+                const removed = account.interventions.splice(idx, 1);
+                if (removed[0]) {
+                    logAction(account, `Removed save plan: ${removed[0].text}`);
+                }
+                markStateDirty();
+                showAccountDetail(accountId);
+                renderMeetingMode();
+            }
+        }
+
+        // ============================================
+        // EXPORT
+        // ============================================
+        function exportData() {
+            if (state.accounts.length === 0) {
+                showToast('No data to export');
+                return;
+            }
+
+            const csv = Papa.unparse(state.accounts.map(a => ({
+                'Account Name': a.name,
+                'ARR': a.arr,
+                'Renewal Date': a.renewalDate,
+                'Tier': a.tier,
+                'Health': a.health,
+                'Churn Risk': a.churnRisk,
+                'Churn Risk Notes': a.churnRiskNotes,
+                'Status': a.status,
+                'Owner': a.owner,
+                'Usage Score': a.usageScore ?? '',
+                'Usage Trend': a.usageTrend || '',
+                'NPS': a.nps ?? '',
+                'Support Escalations': a.escalations ?? 0,
+                'Meeting Notes': a.meetingNotes,
+                'Interventions': (a.interventions || []).map(i => {
+                    const owner = i.owner ? ` • Owner: ${i.owner}` : '';
+                    const due = i.dueDate ? ` • Due: ${formatDate(i.dueDate)}` : '';
+                    return `${i.done ? '[X]' : '[ ]'} ${i.text}${owner}${due}`;
+                }).join('; ')
+            })));
+
+            downloadFile(csv, 'grr-accounts-export.csv', 'text/csv');
+            showToast('Data exported successfully');
+        }
+
+        function exportMeetingNotes() {
+            const meetingAccounts = state.accounts
+                .filter(a => a.status === 'In Progress' || a.status === 'Closed Lost' || a.churnRisk === 'High')
+                .sort((a, b) => {
+                    const riskMultiplier = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                    return (b.arr * riskMultiplier[b.churnRisk]) - (a.arr * riskMultiplier[a.churnRisk]);
+                });
+
+            const grr = calculateGRR();
+
+            let markdown = `# 1:1 Meeting Summary\n`;
+            markdown += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+            markdown += `## Overview\n`;
+            markdown += `- Current Projected GRR: ${grr.current.toFixed(1)}%\n`;
+            markdown += `- Accounts to Discuss: ${meetingAccounts.length}\n`;
+            markdown += `- Total ARR at Stake: ${formatCurrency(meetingAccounts.reduce((sum, a) => sum + a.arr, 0))}\n\n`;
+            markdown += `## Accounts\n\n`;
+
+            meetingAccounts.forEach((account, idx) => {
+                markdown += `### ${idx + 1}. ${account.name}\n`;
+                markdown += `- **ARR:** ${formatCurrency(account.arr)}\n`;
+                markdown += `- **Renewal:** ${formatDate(account.renewalDate)}\n`;
+                markdown += `- **Risk:** ${account.churnRisk} | **Status:** ${account.status}\n`;
+                if (account.usageScore !== null && account.usageScore !== undefined) {
+                    markdown += `- **Adoption Score:** ${account.usageScore} (${account.usageTrend || 'flat'})\n`;
+                }
+                if (account.nps !== null && account.nps !== undefined) {
+                    markdown += `- **NPS:** ${account.nps}\n`;
+                }
+                if (account.escalations) {
+                    markdown += `- **Open Escalations:** ${account.escalations}\n`;
+                }
+                if (account.churnRiskNotes) {
+                    markdown += `- **Risk Notes:** ${account.churnRiskNotes}\n`;
+                }
+                if (account.meetingNotes) {
+                    markdown += `- **Meeting Notes:** ${account.meetingNotes}\n`;
+                }
+                if (account.interventions?.length > 0) {
+                    markdown += `- **Action Items:**\n`;
+                    account.interventions.forEach(i => {
+                        const owner = i.owner ? ` • ${i.owner}` : '';
+                        const due = i.dueDate ? ` • Due ${formatDate(i.dueDate)}` : '';
+                        markdown += `  - [${i.done ? 'x' : ' '}] ${i.text}${owner}${due}\n`;
+                    });
+                }
+                markdown += '\n';
+            });
+
+            downloadFile(markdown, 'meeting-summary.md', 'text/markdown');
+            showToast('Meeting summary exported');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function formatCurrency(value, short = false) {
+            if (short && value >= 1000000) {
+                return '$' + (value / 1000000).toFixed(1) + 'M';
+            }
+            if (short && value >= 1000) {
+                return '$' + (value / 1000).toFixed(0) + 'K';
+            }
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatTimestamp(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
+
+        function updateLastUpdated() {
+            const el = document.getElementById('last-updated');
+            if (state.lastUpdated) {
+                const date = new Date(state.lastUpdated);
+                el.textContent = date.toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadState();
+        });
+    </script>
+</body>
+</html>
