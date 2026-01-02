@@ -988,67 +988,55 @@
                         </div>
                     </div>
 
-                    <!-- Scenario Controls -->
-                    <div class="flex flex-wrap gap-4 mb-6 items-start">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6 flex-1 min-w-[280px] max-w-3xl">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h4 class="font-semibold text-gray-800">Scenario Planner</h4>
-                                    <p class="text-sm text-gray-500">Flip between forecast modes instantly.</p>
+                    <!-- Scenario Controls - Compact Collapsible -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-100 mb-4">
+                        <div class="px-4 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-6">
+                                <span class="text-sm font-medium text-gray-600">Scenario:</span>
+                                <div class="flex gap-2">
+                                    <button class="scenario-pill px-3 py-1.5 rounded-full border text-xs font-medium" data-scenario="base" onclick="setScenario('base')">Base Case</button>
+                                    <button class="scenario-pill px-3 py-1.5 rounded-full border text-xs font-medium" data-scenario="best" onclick="setScenario('best')">Optimistic</button>
+                                    <button class="scenario-pill px-3 py-1.5 rounded-full border text-xs font-medium" data-scenario="worst" onclick="setScenario('worst')">Pessimistic</button>
                                 </div>
+                                <span id="scenario-description" class="text-xs text-gray-400 hidden lg:inline">Select a scenario</span>
                             </div>
-                            <div class="flex flex-wrap gap-2 mb-4">
-                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="base" onclick="setScenario('base')">Base Case</button>
-                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="best" onclick="setScenario('best')">Optimistic</button>
-                                <button class="scenario-pill px-4 py-2 rounded-full border text-sm font-medium" data-scenario="worst" onclick="setScenario('worst')">Pessimistic</button>
-                            </div>
-                            <p id="scenario-description" class="text-sm text-gray-500">Select a scenario to begin.</p>
+                            <button id="fine-tune-toggle" onclick="toggleFineTune()" class="text-xs font-medium text-vena-tuscany flex items-center gap-1 hover:underline">
+                                <span>Fine-tune</span>
+                                <svg class="w-3 h-3 transition-transform" id="fine-tune-arrow" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.146l3.71-3.916a.75.75 0 111.08 1.04l-4.24 4.47a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
                         </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6 w-full lg:max-w-sm">
-                            <div class="flex items-center justify-between">
+                        <div id="fine-tune-panel" class="hidden border-t border-gray-100 px-4 py-4 bg-gray-50/50">
+                            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                                 <div>
-                                    <h4 class="font-semibold text-gray-800">Fine-tune Assumptions</h4>
-                                    <p class="text-sm text-gray-500">Dial-in overrides when you need them.</p>
-                                </div>
-                                <button id="fine-tune-toggle" onclick="toggleFineTune()" class="text-sm font-medium text-vena-tuscany flex items-center gap-1">
-                                    <span>Expand</span>
-                                    <svg class="w-4 h-4 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.146l3.71-3.916a.75.75 0 111.08 1.04l-4.24 4.47a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div id="fine-tune-panel" class="space-y-4 mt-4 hidden">
-                                <div>
-                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
-                                        <p>High Risk Renewal Probability</p>
-                                        <span id="risk-value-High">--%</span>
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <p>High Risk Prob.</p>
+                                        <span id="risk-value-High" class="font-medium">--%</span>
                                     </div>
                                     <input type="range" min="0" max="100" step="5" id="risk-slider-High" class="range-input" oninput="updateRiskOverride('High', this.value)">
                                 </div>
                                 <div>
-                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
-                                        <p>Medium Risk Renewal Probability</p>
-                                        <span id="risk-value-Medium">--%</span>
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <p>Medium Risk Prob.</p>
+                                        <span id="risk-value-Medium" class="font-medium">--%</span>
                                     </div>
                                     <input type="range" min="0" max="100" step="5" id="risk-slider-Medium" class="range-input" oninput="updateRiskOverride('Medium', this.value)">
                                 </div>
                                 <div>
-                                    <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
-                                        <p>Low Risk Renewal Probability</p>
-                                        <span id="risk-value-Low">--%</span>
+                                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                        <p>Low Risk Prob.</p>
+                                        <span id="risk-value-Low" class="font-medium">--%</span>
                                     </div>
                                     <input type="range" min="0" max="100" step="5" id="risk-slider-Low" class="range-input" oninput="updateRiskOverride('Low', this.value)">
                                 </div>
-                                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                                    <div>
-                                        <label class="text-sm text-gray-600">Expansion Upside %</label>
-                                        <input type="number" id="sim-expansion-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm" onchange="updateGrowthAssumption('expansion', this.value)">
-                                    </div>
-                                    <div>
-                                        <label class="text-sm text-gray-600">Downsell Risk %</label>
-                                        <input type="number" id="sim-downsell-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1 text-sm" onchange="updateGrowthAssumption('downsell', this.value)">
-                                    </div>
+                                <div>
+                                    <label class="text-xs text-gray-600">Expansion %</label>
+                                    <input type="number" id="sim-expansion-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded px-2 py-1.5 mt-1 text-xs" onchange="updateGrowthAssumption('expansion', this.value)">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-600">Downsell %</label>
+                                    <input type="number" id="sim-downsell-rate" min="0" max="50" step="1" class="w-full border border-gray-200 rounded px-2 py-1.5 mt-1 text-xs" onchange="updateGrowthAssumption('downsell', this.value)">
                                 </div>
                             </div>
                         </div>
